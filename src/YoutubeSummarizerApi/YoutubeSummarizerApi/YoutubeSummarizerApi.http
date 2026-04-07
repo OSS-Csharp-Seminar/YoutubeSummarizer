@@ -1,0 +1,6 @@
+@YoutubeSummarizerApi_HostAddress = http://localhost:5017
+
+GET {{YoutubeSummarizerApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

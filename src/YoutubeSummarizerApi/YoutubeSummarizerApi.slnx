@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="YoutubeSummarizerApi/YoutubeSummarizer.Api.csproj" />
+  <Project Path="YoutubeSummarizerApplication/YoutubeSummarizer.Application.csproj" />
+  <Project Path="YoutubeSummarizerDomain/YoutubeSummarizer.Domain.csproj" />
+  <Project Path="YoutubeSummarizerInfrastructure/YoutubeSummarizer.Infrastructure.csproj" />
+</Solution>
