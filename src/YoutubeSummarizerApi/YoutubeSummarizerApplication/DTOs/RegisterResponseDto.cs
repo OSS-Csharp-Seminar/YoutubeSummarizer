@@ -1,6 +1,6 @@
-﻿namespace YoutubeSummarizer.Application.DTOs
+namespace YoutubeSummarizer.Application.DTOs
 {
-    public class LoginResponseDto
+    public class RegisterResponseDto
     {
         public Guid UserId { get; set; }
         public string Email { get; set; } = string.Empty;

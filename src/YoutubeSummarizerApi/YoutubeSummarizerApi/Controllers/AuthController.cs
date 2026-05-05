@@ -1,4 +1,4 @@
-﻿using Azure;
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YoutubeSummarizer.Application.DTOs;
@@ -23,25 +23,49 @@ namespace YoutubeSummarizer.Api.Controllers
 
             SetAuthCookie(result.AccessToken);
 
-           
+            return Ok(new
+            {
+                result.UserId,
+                result.Email,
+                result.FullName
+            });
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(
             [FromBody] RegisterRequestDto dto)
         {
-            var result = await _authService.RegisterAsync(dto);
+            try
+            {
+                var result = await _authService.RegisterAsync(dto);
 
-            SetAuthCookie(result.AccessToken);
+                SetAuthCookie(result.AccessToken);
 
-            return CreatedAtAction(
-                actionName: nameof(Login),
-                value: new
+                return CreatedAtAction(
+                    actionName: nameof(Login),
+                    routeValues: null,
+                    value: new
+                    {
+                        result.UserId,
+                        result.Email,
+                        result.FullName
+                    });
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(new
                 {
-                    result.UserId,
-                    result.Email,
-                    result.FullName
+                    errors = ex.Errors.Select(error => new
+                    {
+                        field = error.PropertyName,
+                        message = error.ErrorMessage
+                    })
                 });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpPost("logout")]
@@ -52,13 +76,12 @@ namespace YoutubeSummarizer.Api.Controllers
             return NoContent();
         }
 
-        // ── Helper ────────────────────────────────────────────
         private void SetAuthCookie(string token)
         {
             Response.Cookies.Append("access_token", token, new CookieOptions
             {
-                HttpOnly = true,   // JS ne može čitati
-                Secure = true,   // samo HTTPS
+                HttpOnly = true,
+                Secure = true,
                 SameSite = SameSiteMode.Strict,
                 Expires = DateTimeOffset.UtcNow.AddHours(8)
             });

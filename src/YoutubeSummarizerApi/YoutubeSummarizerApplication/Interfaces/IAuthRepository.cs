@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using YoutubeSummarizer.Domain.Models;
+﻿using YoutubeSummarizer.Domain.Models;
 
 namespace YoutubeSummarizer.Application.Interfaces
 {
@@ -9,5 +6,6 @@ namespace YoutubeSummarizer.Application.Interfaces
     {
         Task<User?> FindByEmailAsync(string email);
         Task<bool> CheckPasswordAsync(string email, string password);
+        Task<User> CreateUserAsync(string firstName, string lastName, string email, string password);
     }
 }

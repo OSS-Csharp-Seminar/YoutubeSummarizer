@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using YoutubeSummarizer.Application.Interfaces;
+﻿using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Models;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
@@ -18,30 +15,16 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
 
         public async Task<User?> GetByIdAsync(Guid id)
         {
-            var identityUser = await _db.Users.FindAsync(id);
-
-            if (identityUser == null)
-                return null;
-
-            return new User
-            {
-                Id = identityUser.Id,
-                FullName = identityUser.FullName
-            };
+            var user = await _db.DomainUsers.FindAsync(id);
+            return user;
         }
 
         public async Task CreateAsync(User user)
         {
-            var identityUser = new ApplicationUser
-            {
-                Id = user.Id,
-                FullName = user.FullName,
-                UserName = user.FullName.Replace(" ", "").ToLower()
-            };
-
-            _db.Users.Add(identityUser);
+            _db.DomainUsers.Add(user);
             await _db.SaveChangesAsync();
         }
     }
-
 }
+
+
