@@ -3,12 +3,14 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using YoutubeSummarizer.Domain.Models;
+using YoutubeSummarizer.Infrastructure.Persistence.Entities;
 
 namespace YoutubeSummarizer.Infrastructure.Persistence.DbContext
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
     {
         public DbSet<User> DomainUsers { get; set; }
+        public DbSet<ApiSetting> ApiSettings { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

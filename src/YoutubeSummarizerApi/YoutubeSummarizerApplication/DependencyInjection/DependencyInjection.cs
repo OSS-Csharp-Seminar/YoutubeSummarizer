@@ -1,5 +1,7 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeTranscript.Services;
 using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Application.Mappings;
 using YoutubeSummarizer.Application.Services;
@@ -13,6 +15,7 @@ namespace YoutubeSummarizer.Application.DependencyInjection
         {
             services.AddScoped<UserMapper>();
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IYoutubeTranscriptService, YoutubeTranscriptService>();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestDtoValidator>();
 
             return services;
