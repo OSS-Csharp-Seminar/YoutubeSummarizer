@@ -61,17 +61,6 @@ builder.Services
     });
 
 var app = builder.Build();
-//using var scope = app.Services.CreateScope();
-//var transcriptService = scope.ServiceProvider.GetRequiredService<IYoutubeTranscriptService>();
-//var result = await transcriptService.GetTranscriptAsync(new GetYoutubeTranscriptRequest
-//{
-//    VideoUrl = "https://www.youtube.com/watch?v=rng_yUSwrgU"
-//});
-//Console.WriteLine($"VideoId: {result.VideoId}");
-//for (int i = 0; i < 20; i++)
-//{
-//    Console.WriteLine($"Segments: {result.Transcript[i]}");
-//}
 
 
 // Configure the HTTP request pipeline.
