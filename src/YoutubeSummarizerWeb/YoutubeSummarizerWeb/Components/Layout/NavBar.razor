@@ -1,0 +1,73 @@
+@using YoutubeSummarizerWeb.Services
+@inject AuthStateService AuthState
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<nav class="navbar">
+    <div class="navbar-inner">
+        <a class="navbar-brand" href="/">
+            <span class="brand-icon">▶</span>
+            <span class="brand-text">YoutubeSummarizer</span>
+        </a>
+
+        <div class="navbar-links">
+            <a href="/subscriptions" class="nav-link">Subscriptions</a>
+            <a href="/notifications" class="nav-link">Notifications</a>
+
+            @if (AuthState.IsLoggedIn)
+            {
+                <div class="user-menu">
+                    <button class="user-button" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
+                        <span class="user-avatar">@AuthState.DisplayName?[0].ToString().ToUpper()</span>
+                        <span class="user-name">@AuthState.DisplayName</span>
+                    </button>
+
+                    @if (showDropdown)
+                    {
+                        <div class="dropdown-menu">
+                            <button class="dropdown-item" @onclick="GoToAccount">My Account</button>
+                            <button class="dropdown-item logout" @onclick="HandleLogout">Logout</button>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <a href="/login" class="nav-link login-link">Login</a>
+            }
+        </div>
+    </div>
+</nav>
+
+@code {
+    private bool showDropdown;
+
+    protected override void OnInitialized()
+    {
+        AuthState.OnChange += StateHasChanged;
+    }
+
+    private void ToggleDropdown()
+    {
+        showDropdown = !showDropdown;
+    }
+
+    private void GoToAccount()
+    {
+        showDropdown = false;
+        Navigation.NavigateTo("/account");
+    }
+
+    private async Task HandleLogout()
+    {
+        showDropdown = false;
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= StateHasChanged;
+    }
+}

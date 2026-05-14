@@ -1,0 +1,89 @@
+@page "/login"
+@using YoutubeSummarizerWeb.Services
+@inject AuthService AuthService
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Login - YoutubeSummarizer</PageTitle>
+
+<div class="auth-page">
+    <div class="auth-card">
+        <h2>Welcome back</h2>
+        <p class="auth-subtitle">Sign in to your account</p>
+
+        @if (showRegisteredMessage)
+        {
+            <div class="alert alert-success">Account created successfully! Sign in to get started.</div>
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-error">@errorMessage</div>
+        }
+
+        <EditForm Model="model" OnValidSubmit="HandleLogin" FormName="login">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText id="email" @bind-Value="model.Email" class="form-input" placeholder="you@example.com" />
+                <ValidationMessage For="() => model.Email" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <InputText id="password" @bind-Value="model.Password" type="password" class="form-input" placeholder="Your password" />
+                <ValidationMessage For="() => model.Password" />
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full" disabled="@isLoading">
+                @(isLoading ? "Signing in..." : "Sign in")
+            </button>
+        </EditForm>
+
+        <p class="auth-footer">
+            Don't have an account? <a href="/register">Click here to register</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private LoginModel model = new();
+    private string? errorMessage;
+    private bool isLoading;
+    private bool showRegisteredMessage;
+
+    protected override void OnInitialized()
+    {
+        if (AuthState.IsLoggedIn)
+            Navigation.NavigateTo("/");
+
+        var uri = new Uri(Navigation.Uri);
+        showRegisteredMessage = uri.Query.Contains("registered=true");
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        var result = await AuthService.LoginAsync(model.Email, model.Password);
+
+        if (result.Success)
+        {
+            Navigation.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Invalid email or password.";
+        }
+
+        isLoading = false;
+    }
+
+    private class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

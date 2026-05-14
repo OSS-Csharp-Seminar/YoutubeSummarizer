@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Claude Code
+.claude/
+
 # secrets / config
 appsettings.Development.json
 appsettings.Local.json

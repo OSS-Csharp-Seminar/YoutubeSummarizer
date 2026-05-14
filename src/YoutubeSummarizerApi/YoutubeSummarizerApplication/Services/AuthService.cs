@@ -36,6 +36,9 @@ namespace YoutubeSummarizer.Application.Services
             var user = await _authRepo.FindByEmailAsync(email)
                 ?? throw new Exception("User not found");
 
+            if (!user.IsActive)
+                throw new UnauthorizedAccessException("Account is deactivated");
+
             var token = _jwtService.GenerateToken(user);
 
             return _mapper.MapToLoginResponseDto(user, token);

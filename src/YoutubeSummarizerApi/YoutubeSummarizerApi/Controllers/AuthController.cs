@@ -27,7 +27,8 @@ namespace YoutubeSummarizer.Api.Controllers
             {
                 result.UserId,
                 result.Email,
-                result.FullName
+                result.FullName,
+                result.AccessToken
             });
         }
 
@@ -48,7 +49,8 @@ namespace YoutubeSummarizer.Api.Controllers
                     {
                         result.UserId,
                         result.Email,
-                        result.FullName
+                        result.FullName,
+                        result.AccessToken
                     });
             }
             catch (ValidationException ex)

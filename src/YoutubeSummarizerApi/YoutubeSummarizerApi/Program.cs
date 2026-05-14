@@ -6,6 +6,8 @@ using YoutubeSummarizer.Application.DependencyInjection;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Infrastructure.DependencyInjection;
+using Microsoft.EntityFrameworkCore;
+using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Security;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,8 +64,27 @@ builder.Services
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var retries = 10;
+    while (retries > 0)
+    {
+        try
+        {
+            db.Database.Migrate();
+            break;
+        }
+        catch (Exception)
+        {
+            retries--;
+            if (retries == 0) throw;
+            Thread.Sleep(3000);
+        }
+    }
+}
 
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

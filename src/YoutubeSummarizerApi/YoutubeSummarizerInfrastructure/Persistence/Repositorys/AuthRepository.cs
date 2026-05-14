@@ -68,7 +68,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
             var result = await _userManager.CreateAsync(applicationUser, password);
 
             if (!result.Succeeded)
-                throw new InvalidOperationException($"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+                throw new InvalidOperationException(result.Errors.First().Description);
 
             await _db.SaveChangesAsync();
 

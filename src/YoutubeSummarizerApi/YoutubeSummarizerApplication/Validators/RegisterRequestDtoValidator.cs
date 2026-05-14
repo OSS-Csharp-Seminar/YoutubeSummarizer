@@ -17,7 +17,7 @@ namespace YoutubeSummarizer.Application.Validators
 
             RuleFor(x => x.Email)
                 .NotEmpty()
-                .EmailAddress()
+                .EmailAddress().WithMessage("Invalid e-mail address.")
                 .MaximumLength(256);
 
             RuleFor(x => x.Password)
