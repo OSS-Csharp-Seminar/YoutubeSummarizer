@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
@@ -11,9 +12,11 @@ using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 namespace YoutubeSummarizer.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260516160118_AddYoutubeChannelSubscriptions")]
+    partial class AddYoutubeChannelSubscriptions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -234,25 +237,10 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("IsWebhookSubscribed")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastWebhookSubscriptionAttemptUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("WebhookExpiresAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("YoutubeChannelId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("ChannelIdentifier")
                         .IsUnique();
-
-                    b.HasIndex("YoutubeChannelId");
 
                     b.ToTable("YoutubeChannels");
                 });

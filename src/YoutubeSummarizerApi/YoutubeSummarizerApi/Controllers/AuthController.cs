@@ -16,6 +16,7 @@ namespace YoutubeSummarizer.Api.Controllers
             => _authService = authService;
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(
             [FromBody] LoginRequestDto dto)
         {
@@ -33,6 +34,7 @@ namespace YoutubeSummarizer.Api.Controllers
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register(
             [FromBody] RegisterRequestDto dto)
         {

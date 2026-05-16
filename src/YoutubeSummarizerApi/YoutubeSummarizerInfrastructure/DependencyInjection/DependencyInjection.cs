@@ -4,10 +4,15 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Features.Summarize;
+using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 using YoutubeSummarizer.Application.Interfaces;
+using YoutubeSummarizer.Infrastructure.BackgroundServices;
 using YoutubeSummarizer.Infrastructure.ExternalServices.Ai;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript;
+using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks;
 using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Persistence.Repositorys;
@@ -39,12 +44,23 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<IApiSettingsRepository, ApiSettingsRepository>();
             services.AddScoped<IAiClient, AiClient>();
             services.Configure<AiSettings>(configuration.GetSection("AiSettings"));
+            services.AddHttpContextAccessor();
+            services.AddScoped<ICurrentUserService, CurrentUserService>();
+            services.AddScoped<IYoutubeChannelRepository, YoutubeChannelRepository>();
+            services.AddScoped<IUserYoutubeChannelSubscriptionRepository, UserYoutubeChannelSubscriptionRepository>();
 
             services.AddHttpClient<IYoutubeTranscriptClient, YoutubeTranscriptClient>(client =>
             {
                 client.BaseAddress = new Uri(configuration["ExternalApis:YoutubeTranscript:BaseUrl"]!);
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
+
+            services.Configure<YoutubeWebhookSettings>(configuration.GetSection("Webhooks:Youtube"));
+            services.AddHttpClient<IYoutubeWebSubClient, YoutubeWebSubClient>(client =>
+            {
+                client.BaseAddress = new Uri("https://pubsubhubbub.appspot.com/subscribe");
+            });
+            services.AddHostedService<YoutubeWebhookRenewalBackgroundService>();
 
             return services;
         }
