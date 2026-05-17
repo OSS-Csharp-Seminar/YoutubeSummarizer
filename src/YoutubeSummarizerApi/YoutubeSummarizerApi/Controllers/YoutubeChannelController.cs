@@ -27,5 +27,23 @@ namespace YoutubeSummarizer.Api.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        [HttpGet("subscriptions")]
+        public async Task<IActionResult> GetUserSubscriptions(CancellationToken cancellationToken)
+        {
+            var result = await _subscriptionService.GetUserSubscriptionsAsync(cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("subscriptions/{subscriptionId:guid}")]
+        public async Task<IActionResult> Unsubscribe(Guid subscriptionId, CancellationToken cancellationToken)
+        {
+            var result = await _subscriptionService.UnsubscribeAsync(subscriptionId, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

@@ -29,5 +29,21 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
             => _db.UserYoutubeChannelSubscriptions
                 .Where(x => x.YoutubeChannelId == youtubeChannelId)
                 .ToListAsync(cancellationToken);
+
+        public Task<List<UserYoutubeChannelSubscription>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+            => _db.UserYoutubeChannelSubscriptions
+                .Where(x => x.UserId == userId)
+                .ToListAsync(cancellationToken);
+    
+        public Task<UserYoutubeChannelSubscription?> GetByIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default)
+            => _db.UserYoutubeChannelSubscriptions
+                .FirstOrDefaultAsync(x => x.Id == subscriptionId, cancellationToken);
+
+        public async Task DeleteAsync(UserYoutubeChannelSubscription subscription, CancellationToken cancellationToken = default)
+        {
+            _db.UserYoutubeChannelSubscriptions.Remove(subscription);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
+
 }

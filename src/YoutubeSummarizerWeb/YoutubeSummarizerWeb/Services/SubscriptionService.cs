@@ -24,6 +24,22 @@ public class SubscriptionService
 
         return new SubscribeResult { Success = true, Data = result.Data };
     }
+
+    public async Task<List<UserSubscription>> GetSubscriptionsAsync()
+    {
+        var response = await _httpClient.GetAsync("/api/youtube-channels/subscriptions");
+        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<List<UserSubscription>>>();
+        return result?.Data ?? new List<UserSubscription>();
+    }
+
+    public async Task<UnsubscribeResult> UnsubscribeAsync(Guid subscriptionId)
+    {
+        var response = await _httpClient.DeleteAsync($"/api/youtube-channels/subscriptions/{subscriptionId}");
+        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+        if (result == null || !result.Status)
+            return new UnsubscribeResult { Success = false, Error = result?.Message ?? "Failed to unsubscribe." };
+        return new UnsubscribeResult { Success = true };
+    }
 }
 
 public enum SummarizationStyle
@@ -47,4 +63,20 @@ public class SubscribeResponse
     public string ChannelIdentifier { get; set; } = string.Empty;
     public string ChannelUrl { get; set; } = string.Empty;
     public SummarizationStyle SummarizationStyle { get; set; }
+}
+
+public class UserSubscription
+{
+    public Guid SubscriptionId { get; set; }
+    public Guid YoutubeChannelId { get; set; }
+    public string ChannelIdentifier { get; set; } = string.Empty;
+    public string ChannelUrl { get; set; } = string.Empty;
+    public SummarizationStyle SummarizationStyle { get; set; }
+    public DateTime CreatedAtUtc { get; set; }
+}
+
+public class UnsubscribeResult
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
 }

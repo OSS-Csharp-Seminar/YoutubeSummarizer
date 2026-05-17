@@ -4,5 +4,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces
     {
         Task SubscribeAsync(Guid youtubeChannelId, CancellationToken cancellationToken = default);
         Task RenewExpiringSubscriptionsAsync(CancellationToken cancellationToken = default);
+        Task UnsubscribeAsync(Guid youtubeChannelId, CancellationToken cancellationToken = default);
     }
 }

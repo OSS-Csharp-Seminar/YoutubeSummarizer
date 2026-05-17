@@ -42,5 +42,20 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             foreach (var channel in channels)
                 await SubscribeAsync(channel.Id, cancellationToken);
         }
+
+        public async Task UnsubscribeAsync(Guid channelId, CancellationToken cancellationToken = default)
+        {
+            var channel = await _channelRepo.GetByIdAsync(channelId, cancellationToken)
+                ?? throw new InvalidOperationException($"Channel {channelId} not found.");
+
+            if (string.IsNullOrEmpty(channel.YoutubeChannelId))
+                return;
+
+            await _webSubClient.UnsubscribeAsync(_settings.CallbackUrl, channel.YoutubeChannelId, cancellationToken);
+
+            channel.IsWebhookSubscribed = false;
+            channel.WebhookExpiresAtUtc = null;
+            await _channelRepo.UpdateAsync(channel, cancellationToken);
+        }
     }
 }

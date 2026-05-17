@@ -60,6 +60,43 @@
             </button>
         </EditForm>
     </div>
+    <div class="subscriptions-list-card">
+        <h2>Your Current Subscriptions</h2>
+
+        @if (isLoadingSubscriptions)
+        {
+            <p>Loading subscriptions...</p>
+        }
+        else if (subscriptions.Count == 0)
+        {
+            <p class="no-subscriptions">You haven't subscribed to any channels yet.</p>
+        }
+        else
+        {
+            <div class="subscriptions-list">
+                @foreach (var sub in subscriptions)
+                {
+                    <div class="subscription-item">
+                        <div class="subscription-info">
+                            <span class="channel-name">@sub.ChannelIdentifier</span>
+                            <span class="subscription-style">@sub.SummarizationStyle</span>
+                            <span class="subscription-date">Subscribed @sub.CreatedAtUtc.ToString("MMM dd, yyyy")</span>
+                        </div>
+                        <button class="btn btn-danger"
+                                disabled="@(deletingId == sub.SubscriptionId)"
+                                @onclick="() => HandleUnsubscribe(sub.SubscriptionId)">
+                            @(deletingId == sub.SubscriptionId ? "Removing..." : "Unsubscribe")
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(unsubscribeError))
+        {
+            <div class="alert alert-error">@unsubscribeError</div>
+        }
+    </div>
 </div>
 
 @code {
@@ -67,11 +104,27 @@
     private string? errorMessage;
     private SubscribeResponse? successData;
     private bool isLoading;
+    private List<UserSubscription> subscriptions = new();
+    private bool isLoadingSubscriptions;
+    private Guid? deletingId;
+    private string? unsubscribeError;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         if (!AuthState.IsLoggedIn)
+        {
             Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadSubscriptions();
+    }
+
+    private async Task LoadSubscriptions()
+    {
+        isLoadingSubscriptions = true;
+        subscriptions = await SubscriptionService.GetSubscriptionsAsync();
+        isLoadingSubscriptions = false;
     }
 
     private async Task HandleSubscribe()
@@ -86,6 +139,7 @@
         {
             successData = result.Data;
             model = new();
+            await LoadSubscriptions();
         }
         else
         {
@@ -93,6 +147,25 @@
         }
 
         isLoading = false;
+    }
+
+    private async Task HandleUnsubscribe(Guid subscriptionId)
+    {
+        deletingId = subscriptionId;
+        unsubscribeError = null;
+
+        var result = await SubscriptionService.UnsubscribeAsync(subscriptionId);
+
+        if (result.Success)
+        {
+            await LoadSubscriptions();
+        }
+        else
+        {
+            unsubscribeError = result.Error;
+        }
+
+        deletingId = null;
     }
 
     private static string GetStyleDescription(SummarizationStyle style) => style switch

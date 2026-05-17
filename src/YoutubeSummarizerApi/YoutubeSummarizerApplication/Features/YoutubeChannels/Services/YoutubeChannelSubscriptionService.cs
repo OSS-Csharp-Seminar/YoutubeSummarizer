@@ -82,5 +82,71 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                 return ServiceResponse<SubscribeToYoutubeChannelResponse>.Failure("Došlo je do greške.");
             }
         }
+        public async Task<ServiceResponse<List<GetUserSubscriptionsResponse>>> GetUserSubscriptionsAsync(
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userId = _currentUserService.GetCurrentUserId();
+                var subscriptions = await _subscriptionRepo.GetByUserIdAsync(userId, cancellationToken);
+
+                var result = new List<GetUserSubscriptionsResponse>();
+
+                foreach (var sub in subscriptions)
+                {
+                    var channel = await _channelRepo.GetByIdAsync(sub.YoutubeChannelId, cancellationToken);
+                    if (channel is null) continue;
+
+                    result.Add(new GetUserSubscriptionsResponse
+                    {
+                        SubscriptionId = sub.Id,
+                        YoutubeChannelId = channel.Id,
+                        ChannelIdentifier = channel.ChannelIdentifier,
+                        ChannelUrl = channel.ChannelUrl,
+                        SummarizationStyle = sub.SummarizationStyle,
+                        CreatedAtUtc = sub.CreatedAtUtc
+                    });
+                }
+
+                return ServiceResponse<List<GetUserSubscriptionsResponse>>.Success(result, "Pretplate uspješno dohvaćene.");
+            }
+            catch
+            {
+                return ServiceResponse<List<GetUserSubscriptionsResponse>>.Failure("Došlo je do greške.");
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> UnsubscribeAsync(
+            Guid subscriptionId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userId = _currentUserService.GetCurrentUserId();
+
+                var subscription = await _subscriptionRepo.GetByIdAsync(subscriptionId, cancellationToken);
+                if (subscription is null || subscription.UserId != userId)
+                    return ServiceResponse<bool>.Failure("Pretplata nije pronađena.");
+
+                var channelId = subscription.YoutubeChannelId;
+
+                await _subscriptionRepo.DeleteAsync(subscription, cancellationToken);
+
+                var remaining = await _subscriptionRepo.GetByYoutubeChannelIdAsync(channelId, cancellationToken);
+                if (remaining.Count == 0)
+                {
+                    var channel = await _channelRepo.GetByIdAsync(channelId, cancellationToken);
+                    if (channel is not null && channel.IsWebhookSubscribed)
+                    {
+                        await _webhookSubscriptionService.UnsubscribeAsync(channelId, cancellationToken);
+                    }
+                }
+
+                return ServiceResponse<bool>.Success(true, "Uspješno ste se odjavili.");
+            }
+            catch
+            {
+                return ServiceResponse<bool>.Failure("Došlo je do greške.");
+            }
+        }
     }
 }

@@ -24,5 +24,19 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
             var response = await _httpClient.PostAsync("", content, cancellationToken);
             response.EnsureSuccessStatusCode();
         }
+        
+        public async Task UnsubscribeAsync(string callbackUrl, string youtubeChannelId, CancellationToken cancellationToken = default)
+        {
+            var content = new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["hub.callback"] = callbackUrl,
+                ["hub.mode"] = "unsubscribe",
+                ["hub.topic"] = $"https://www.youtube.com/xml/feeds/videos.xml?channel_id={youtubeChannelId}",
+                ["hub.verify"] = "async"
+            });
+
+            var response = await _httpClient.PostAsync("", content, cancellationToken);
+            response.EnsureSuccessStatusCode();
+        }
     }
 }
