@@ -5,27 +5,30 @@ namespace YoutubeSummarizer.Application.Mappings
 {
     public class UserMapper
     {
-        public LoginResponseDto MapToLoginResponseDto(User user, string accessToken)
+        public LoginResponseDto MapToLoginResponseDto(User user, string accessToken, string refreshToken)
         {
             return new LoginResponseDto
             {
-                UserId = user.Id,
+                UserId = user.Id.ToString(),
                 Email = user.Email,
-                FullName = $"{user.FirstName} {user.LastName}",
-                AccessToken = accessToken
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
             };
         }
 
-        public RegisterResponseDto MapToRegisterResponseDto(User user, string accessToken)
+        public RegisterResponseDto MapToRegisterResponseDto(User user, string accessToken, string refreshToken)
         {
             return new RegisterResponseDto
             {
-                UserId = user.Id,
+                UserId = user.Id.ToString(),
                 Email = user.Email,
-                FullName = $"{user.FirstName} {user.LastName}",
-                AccessToken = accessToken
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
             };
         }
     }
 }
-

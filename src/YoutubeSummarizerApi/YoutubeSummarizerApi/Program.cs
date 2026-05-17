@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using YoutubeSummarizer.Api.DependencyInjection;
 using YoutubeSummarizer.Application.DependencyInjection;
 using YoutubeSummarizer.Infrastructure.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Security;
 var builder = WebApplication.CreateBuilder(args);
@@ -50,19 +50,6 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
-
-        // Extract JWT from HttpOnly cookie
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                if (context.Request.Cookies.TryGetValue("access_token", out var token))
-                {
-                    context.Token = token;
-                }
-                return Task.CompletedTask;
-            }
-        };
     });
 
 var app = builder.Build();
@@ -70,23 +57,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var retries = 10;
-    while (retries > 0)
-    {
-        try
-        {
-            db.Database.Migrate();
-            break;
-        }
-        catch (Exception)
-        {
-            retries--;
-            if (retries == 0) throw;
-            Thread.Sleep(3000);
-        }
-    }
+    db.Database.CreateExecutionStrategy().Execute(() => db.Database.Migrate());
 }
-
 
 if (app.Environment.IsDevelopment())
 {

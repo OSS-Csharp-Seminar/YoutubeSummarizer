@@ -13,6 +13,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.DbContext
         public DbSet<ApiSetting> ApiSettings { get; set; }
         public DbSet<YoutubeChannel> YoutubeChannels { get; set; }
         public DbSet<UserYoutubeChannelSubscription> UserYoutubeChannelSubscriptions { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using YoutubeSummarizer.Application.Common.Interfaces;
+using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Summarize.Dtos;
 using YoutubeSummarizer.Application.Features.Summarize.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
@@ -23,19 +24,31 @@ namespace YoutubeSummarizer.Application.Features.Summarize.Services
             _aiSettings = aiSettings.Value;
         }
 
-        public async Task<SummarizeResponse> SummarizeAsync(SummarizeRequest request, CancellationToken cancellationToken = default)
+        public async Task<ServiceResponse<SummarizeResponse>> SummarizeAsync(SummarizeRequest request, CancellationToken cancellationToken = default)
         {
-            var transcript = await _transcriptService.GetTranscriptAsync(
-                new GetYoutubeTranscriptRequest { VideoUrl = request.VideoUrl },
-                cancellationToken);
+            try
+            {
+                var transcriptResponse = await _transcriptService.GetTranscriptAsync(
+                    new GetYoutubeTranscriptRequest { VideoUrl = request.VideoUrl },
+                    cancellationToken);
 
-            var transcriptText = string.Join("\n", transcript.Transcript.Select(s => s.Text));
+                if (!transcriptResponse.Status)
+                    return ServiceResponse<SummarizeResponse>.Failure(transcriptResponse.Message);
 
-            var prompt = PromptBuilder.Build(_aiSettings.BasePrompt, request.AdditionalInstructions, transcriptText);
+                var transcriptText = string.Join("\n", transcriptResponse.Data!.Transcript.Select(s => s.Text));
 
-            var content = await _aiClient.CompleteAsync(prompt, cancellationToken);
+                var prompt = PromptBuilder.Build(_aiSettings.BasePrompt, request.AdditionalInstructions, transcriptText);
 
-            return new SummarizeResponse { Content = content };
+                var content = await _aiClient.CompleteAsync(prompt, cancellationToken);
+
+                return ServiceResponse<SummarizeResponse>.Success(
+                    new SummarizeResponse { Content = content },
+                    "Sažetak uspješno generiran.");
+            }
+            catch
+            {
+                return ServiceResponse<SummarizeResponse>.Failure("Došlo je do greške pri generiranju sažetka.");
+            }
         }
     }
 }

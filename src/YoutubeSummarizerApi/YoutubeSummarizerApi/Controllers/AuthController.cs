@@ -1,4 +1,3 @@
-using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YoutubeSummarizer.Application.DTOs;
@@ -17,78 +16,46 @@ namespace YoutubeSummarizer.Api.Controllers
 
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login(
-            [FromBody] LoginRequestDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto dto, CancellationToken cancellationToken)
         {
-            var result = await _authService.LoginAsync(dto);
-
-            SetAuthCookie(result.AccessToken);
-
-            return Ok(new
-            {
-                result.UserId,
-                result.Email,
-                result.FullName,
-                result.AccessToken
-            });
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var result = await _authService.LoginAsync(dto, ip, cancellationToken);
+            if (!result.Status)
+                return Unauthorized(result);
+            return Ok(result);
         }
 
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<IActionResult> Register(
-            [FromBody] RegisterRequestDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterRequestDto dto, CancellationToken cancellationToken)
         {
-            try
-            {
-                var result = await _authService.RegisterAsync(dto);
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var result = await _authService.RegisterAsync(dto, ip, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return CreatedAtAction(nameof(Login), routeValues: null, value: result);
+        }
 
-                SetAuthCookie(result.AccessToken);
-
-                return CreatedAtAction(
-                    actionName: nameof(Login),
-                    routeValues: null,
-                    value: new
-                    {
-                        result.UserId,
-                        result.Email,
-                        result.FullName,
-                        result.AccessToken
-                    });
-            }
-            catch (ValidationException ex)
-            {
-                return BadRequest(new
-                {
-                    errors = ex.Errors.Select(error => new
-                    {
-                        field = error.PropertyName,
-                        message = error.ErrorMessage
-                    })
-                });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Conflict(new { message = ex.Message });
-            }
+        [HttpPost("refresh-token")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto dto, CancellationToken cancellationToken)
+        {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var result = await _authService.RefreshTokenAsync(dto, ip, cancellationToken);
+            if (!result.Status)
+                return Unauthorized(result);
+            return Ok(result);
         }
 
         [HttpPost("logout")]
-        [Authorize]
-        public IActionResult Logout()
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout([FromBody] LogoutRequest request, CancellationToken cancellationToken)
         {
-            Response.Cookies.Delete("access_token");
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            await _authService.LogoutAsync(request.RefreshToken, ip, cancellationToken);
             return NoContent();
         }
 
-        private void SetAuthCookie(string token)
-        {
-            Response.Cookies.Append("access_token", token, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
-                Expires = DateTimeOffset.UtcNow.AddHours(8)
-            });
-        }
+        public record LogoutRequest(string RefreshToken);
     }
 }

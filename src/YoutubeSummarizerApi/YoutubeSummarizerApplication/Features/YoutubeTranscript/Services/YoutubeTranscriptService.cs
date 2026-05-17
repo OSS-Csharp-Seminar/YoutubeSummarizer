@@ -1,3 +1,4 @@
+using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 
@@ -12,9 +13,17 @@ namespace YoutubeSummarizer.Application.Features.YoutubeTranscript.Services
             _client = client;
         }
 
-        public async Task<GetYoutubeTranscriptResponse> GetTranscriptAsync(GetYoutubeTranscriptRequest request, CancellationToken cancellationToken = default)
+        public async Task<ServiceResponse<GetYoutubeTranscriptResponse>> GetTranscriptAsync(GetYoutubeTranscriptRequest request, CancellationToken cancellationToken = default)
         {
-            return await _client.GetTranscriptAsync(request, cancellationToken);
+            try
+            {
+                var result = await _client.GetTranscriptAsync(request, cancellationToken);
+                return ServiceResponse<GetYoutubeTranscriptResponse>.Success(result, "Transkript uspješno dohvaćen.");
+            }
+            catch
+            {
+                return ServiceResponse<GetYoutubeTranscriptResponse>.Failure("Nije moguće dohvatiti transkript.");
+            }
         }
     }
 }

@@ -1,10 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Models;
-using YoutubeSummarizer.Infrastructure.Security;
 
 namespace YoutubeSummarizer.Infrastructure.Security
 {
@@ -17,7 +17,7 @@ namespace YoutubeSummarizer.Infrastructure.Security
             _jwtSettings = jwtSettings;
         }
 
-        public string GenerateToken(User user)
+        public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user)
         {
             var keyBytes = Encoding.UTF8.GetBytes(_jwtSettings.Key);
             if (keyBytes.Length < 32)
@@ -25,6 +25,7 @@ namespace YoutubeSummarizer.Infrastructure.Security
 
             var key = new SymmetricSecurityKey(keyBytes);
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var expiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes);
 
             var claims = new List<Claim>
             {
@@ -39,12 +40,50 @@ namespace YoutubeSummarizer.Infrastructure.Security
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+                expires: expiresAt,
                 signingCredentials: credentials
             );
 
-            var tokenHandler = new JwtSecurityTokenHandler();
-            return tokenHandler.WriteToken(token);
+            return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+        }
+
+        public RefreshToken GenerateRefreshToken(string ipAddress)
+        {
+            var bytes = new byte[64];
+            RandomNumberGenerator.Fill(bytes);
+            return new RefreshToken
+            {
+                Id = Guid.NewGuid(),
+                Token = Convert.ToBase64String(bytes),
+                CreatedAtUtc = DateTime.UtcNow,
+                ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),
+                CreatedByIp = ipAddress
+            };
+        }
+
+        public ClaimsPrincipal? ValidateTokenWithoutLifetime(string token)
+        {
+            try
+            {
+                var keyBytes = Encoding.UTF8.GetBytes(_jwtSettings.Key);
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                    ValidateIssuer = true,
+                    ValidIssuer = _jwtSettings.Issuer,
+                    ValidateAudience = true,
+                    ValidAudience = _jwtSettings.Audience,
+                    ValidateLifetime = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out _);
+                return principal;
+            }
+            catch
+            {
+                return null;
+            }
         }
     }
 }

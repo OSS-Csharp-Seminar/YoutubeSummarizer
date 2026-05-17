@@ -1,7 +1,5 @@
 using System.Net.Http.Json;
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using Microsoft.JSInterop;
 
 namespace YoutubeSummarizerWeb.Services;
 
@@ -9,13 +7,13 @@ public class AuthService
 {
     private readonly HttpClient _httpClient;
     private readonly AuthStateService _authState;
-    private readonly IJSRuntime _js;
+    private readonly ITokenStorageService _tokenStorage;
 
-    public AuthService(HttpClient httpClient, AuthStateService authState, IJSRuntime js)
+    public AuthService(HttpClient httpClient, AuthStateService authState, ITokenStorageService tokenStorage)
     {
         _httpClient = httpClient;
         _authState = authState;
-        _js = js;
+        _tokenStorage = tokenStorage;
     }
 
     public async Task<AuthResult> LoginAsync(string email, string password)
@@ -26,16 +24,14 @@ public class AuthService
             Password = password
         });
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            return new AuthResult { Success = false, Error = error };
-        }
+        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<AuthResponse>>(JsonOptions);
+        if (result == null || !result.Status || result.Data == null)
+            return new AuthResult { Success = false, Error = result?.Message ?? "Unexpected response from server." };
 
-        var data = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        _authState.SetUser(data!);
-        await PersistSession(data!);
-        return new AuthResult { Success = true, User = data };
+        await _tokenStorage.SaveTokensAsync(result.Data.AccessToken, result.Data.RefreshToken, result.Data);
+        _authState.SetUser(result.Data);
+
+        return new AuthResult { Success = true, User = result.Data };
     }
 
     public async Task<AuthResult> RegisterAsync(string firstName, string lastName, string email, string password)
@@ -48,20 +44,27 @@ public class AuthService
             Password = password
         });
 
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorMessage = await ParseErrorAsync(response);
-            return new AuthResult { Success = false, Error = errorMessage };
-        }
+        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<AuthResponse>>(JsonOptions);
+        if (result == null || !result.Status || result.Data == null)
+            return new AuthResult { Success = false, Error = result?.Message ?? "Unexpected response from server." };
 
-        var data = await response.Content.ReadFromJsonAsync<AuthResponse>();
-        return new AuthResult { Success = true, User = data };
+        await _tokenStorage.SaveTokensAsync(result.Data.AccessToken, result.Data.RefreshToken, result.Data);
+
+        return new AuthResult { Success = true, User = result.Data };
     }
 
     public async Task LogoutAsync()
     {
+        var refreshToken = await _tokenStorage.GetRefreshTokenAsync();
+
         _authState.ClearUser();
-        await _js.InvokeVoidAsync("authCookie.delete");
+        await _tokenStorage.ClearAsync();
+
+        if (refreshToken != null)
+        {
+            try { await _httpClient.PostAsJsonAsync("/api/auth/logout", new { RefreshToken = refreshToken }); }
+            catch { }
+        }
     }
 
     public async Task RestoreSessionAsync()
@@ -69,67 +72,10 @@ public class AuthService
         if (_authState.IsLoggedIn)
             return;
 
-        var json = await _js.InvokeAsync<string?>("authCookie.get");
-        if (string.IsNullOrEmpty(json))
-            return;
-
-        var data = JsonSerializer.Deserialize<AuthResponse>(json, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        });
-
-        if (data != null)
-            _authState.SetUser(data);
+        var user = await _tokenStorage.GetUserAsync();
+        if (user != null)
+            _authState.SetUser(user);
     }
 
-    private static async Task<string> ParseErrorAsync(HttpResponseMessage response)
-    {
-        var body = await response.Content.ReadAsStringAsync();
-
-        try
-        {
-            var doc = JsonDocument.Parse(body);
-
-            if (doc.RootElement.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array)
-            {
-                var firstMessage = errors.EnumerateArray()
-                    .Select(e => e.TryGetProperty("message", out var m) ? m.GetString() : null)
-                    .FirstOrDefault(m => m != null);
-                if (firstMessage != null) return firstMessage;
-            }
-
-            if (doc.RootElement.TryGetProperty("message", out var msg))
-                return msg.GetString() ?? "An error occurred.";
-        }
-        catch (JsonException) { }
-
-        return "An error occurred.";
-    }
-
-    private async Task PersistSession(AuthResponse user)
-    {
-        var json = JsonSerializer.Serialize(new
-        {
-            user.UserId,
-            user.Email,
-            user.FullName,
-            user.AccessToken
-        });
-        await _js.InvokeVoidAsync("authCookie.set", json, 1);
-    }
-}
-
-public class AuthResult
-{
-    public bool Success { get; set; }
-    public string? Error { get; set; }
-    public AuthResponse? User { get; set; }
-}
-
-public class AuthResponse
-{
-    public Guid UserId { get; set; }
-    public string Email { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string AccessToken { get; set; } = string.Empty;
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 }

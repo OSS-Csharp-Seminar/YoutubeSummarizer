@@ -22,8 +22,10 @@ namespace YoutubeSummarizer.Api.Controllers
             [FromBody] SubscribeToYoutubeChannelRequest request,
             CancellationToken cancellationToken)
         {
-            var response = await _subscriptionService.SubscribeAsync(request, cancellationToken);
-            return Ok(response);
+            var result = await _subscriptionService.SubscribeAsync(request, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
         }
     }
 }

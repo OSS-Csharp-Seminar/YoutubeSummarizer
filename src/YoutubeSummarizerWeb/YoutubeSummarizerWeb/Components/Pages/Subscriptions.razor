@@ -1,8 +1,112 @@
 @page "/subscriptions"
+@using YoutubeSummarizerWeb.Services
+@inject SubscriptionService SubscriptionService
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
 
 <PageTitle>Subscriptions - YoutubeSummarizer</PageTitle>
 
-<div class="page-container">
-    <h2>Your Subscriptions</h2>
-    <p class="text-muted">Manage the YouTube channels you're tracking. This feature is coming soon.</p>
+<div class="subscriptions-page">
+    <div class="subscriptions-header">
+        <h1>Your Subscriptions</h1>
+        <p class="page-subtitle">Track YouTube channels and receive AI-powered summaries of new videos.</p>
+    </div>
+
+    <div class="subscribe-card">
+        <h2>Subscribe to a Channel</h2>
+        <p class="card-subtitle">Paste a YouTube channel link and choose how you'd like videos summarized.</p>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-error">@errorMessage</div>
+        }
+
+        @if (successData is not null)
+        {
+            <div class="alert alert-success">
+                Subscribed to <strong>@successData.ChannelIdentifier</strong>! You'll receive summaries for new uploads.
+            </div>
+        }
+
+        <EditForm Model="model" OnValidSubmit="HandleSubscribe" FormName="subscribe">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label for="channelUrl">YouTube Channel URL</label>
+                <InputText id="channelUrl"
+                           @bind-Value="model.ChannelUrl"
+                           class="form-input"
+                           placeholder="https://youtube.com/c/channelname" />
+                <ValidationMessage For="() => model.ChannelUrl" />
+            </div>
+
+            <div class="form-group">
+                <label>Summarization Style</label>
+                <div class="style-options">
+                    @foreach (var style in Enum.GetValues<SummarizationStyle>())
+                    {
+                        var s = style;
+                        <div class="style-option @(model.SummarizationStyle == s ? "selected" : "")"
+                             @onclick="() => model.SummarizationStyle = s">
+                            <span class="style-label">@s</span>
+                            <span class="style-desc">@GetStyleDescription(s)</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                @(isLoading ? "Subscribing..." : "Subscribe")
+            </button>
+        </EditForm>
+    </div>
 </div>
+
+@code {
+    private SubscribeModel model = new();
+    private string? errorMessage;
+    private SubscribeResponse? successData;
+    private bool isLoading;
+
+    protected override void OnInitialized()
+    {
+        if (!AuthState.IsLoggedIn)
+            Navigation.NavigateTo("/login");
+    }
+
+    private async Task HandleSubscribe()
+    {
+        isLoading = true;
+        errorMessage = null;
+        successData = null;
+
+        var result = await SubscriptionService.SubscribeAsync(model.ChannelUrl, model.SummarizationStyle);
+
+        if (result.Success)
+        {
+            successData = result.Data;
+            model = new();
+        }
+        else
+        {
+            errorMessage = result.Error;
+        }
+
+        isLoading = false;
+    }
+
+    private static string GetStyleDescription(SummarizationStyle style) => style switch
+    {
+        SummarizationStyle.Brief => "Short, key points only",
+        SummarizationStyle.Detailed => "Full breakdown of topics",
+        SummarizationStyle.Scientific => "Technical & structured",
+        SummarizationStyle.Layman => "Simple, easy to read",
+        _ => string.Empty
+    };
+
+    private class SubscribeModel
+    {
+        public string ChannelUrl { get; set; } = string.Empty;
+        public SummarizationStyle SummarizationStyle { get; set; } = SummarizationStyle.Brief;
+    }
+}

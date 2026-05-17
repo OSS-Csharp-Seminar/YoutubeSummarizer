@@ -13,6 +13,7 @@ using YoutubeSummarizer.Infrastructure.BackgroundServices;
 using YoutubeSummarizer.Infrastructure.ExternalServices.Ai;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks;
+using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Persistence.Repositorys;
@@ -31,7 +32,11 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                 configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName)));
+                b =>
+                {
+                    b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
+                    b.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+                }));
 
             // Add Identity
            services.AddIdentity<ApplicationUser, IdentityRole<Guid>>()
@@ -40,6 +45,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
 
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<IAuthRepository, AuthRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<IApiSettingsRepository, ApiSettingsRepository>();
             services.AddScoped<IAiClient, AiClient>();
