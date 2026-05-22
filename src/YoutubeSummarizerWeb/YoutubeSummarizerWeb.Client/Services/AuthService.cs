@@ -1,19 +1,17 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 
-namespace YoutubeSummarizerWeb.Services;
+namespace YoutubeSummarizerWeb.Client.Services;
 
 public class AuthService
 {
     private readonly HttpClient _httpClient;
     private readonly AuthStateService _authState;
-    private readonly ITokenStorageService _tokenStorage;
 
-    public AuthService(HttpClient httpClient, AuthStateService authState, ITokenStorageService tokenStorage)
+    public AuthService(HttpClient httpClient, AuthStateService authState)
     {
         _httpClient = httpClient;
         _authState = authState;
-        _tokenStorage = tokenStorage;
     }
 
     public async Task<AuthResult> LoginAsync(string email, string password)
@@ -28,9 +26,7 @@ public class AuthService
         if (result == null || !result.Status || result.Data == null)
             return new AuthResult { Success = false, Error = result?.Message ?? "Unexpected response from server." };
 
-        await _tokenStorage.SaveTokensAsync(result.Data.AccessToken, result.Data.RefreshToken, result.Data);
         _authState.SetUser(result.Data);
-
         return new AuthResult { Success = true, User = result.Data };
     }
 
@@ -48,23 +44,14 @@ public class AuthService
         if (result == null || !result.Status || result.Data == null)
             return new AuthResult { Success = false, Error = result?.Message ?? "Unexpected response from server." };
 
-        await _tokenStorage.SaveTokensAsync(result.Data.AccessToken, result.Data.RefreshToken, result.Data);
-
         return new AuthResult { Success = true, User = result.Data };
     }
 
     public async Task LogoutAsync()
     {
-        var refreshToken = await _tokenStorage.GetRefreshTokenAsync();
-
         _authState.ClearUser();
-        await _tokenStorage.ClearAsync();
-
-        if (refreshToken != null)
-        {
-            try { await _httpClient.PostAsJsonAsync("/api/auth/logout", new { RefreshToken = refreshToken }); }
-            catch { }
-        }
+        try { await _httpClient.PostAsync("/api/auth/logout", null); }
+        catch { }
     }
 
     public async Task RestoreSessionAsync()
@@ -72,9 +59,17 @@ public class AuthService
         if (_authState.IsLoggedIn)
             return;
 
-        var user = await _tokenStorage.GetUserAsync();
-        if (user != null)
-            _authState.SetUser(user);
+        try
+        {
+            var response = await _httpClient.GetAsync("/api/auth/me");
+            if (!response.IsSuccessStatusCode)
+                return;
+
+            var result = await response.Content.ReadFromJsonAsync<ServiceResponse<AuthResponse>>(JsonOptions);
+            if (result?.Status == true && result.Data != null)
+                _authState.SetUser(result.Data);
+        }
+        catch { }
     }
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };

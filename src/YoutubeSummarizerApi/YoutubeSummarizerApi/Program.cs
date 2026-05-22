@@ -11,25 +11,33 @@ using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Security;
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add(new AuthorizeFilter(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build()));
 });
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration)
     .AddApi();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("http://localhost:5147", "https://localhost:7094")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 var jwtSettings = new JwtSettings();
 builder.Configuration.GetSection("JwtSettings").Bind(jwtSettings);
 builder.Services.AddSingleton(jwtSettings);
 
-// Add JWT Authentication
 var key = Encoding.ASCII.GetBytes(jwtSettings.Key);
 builder.Services
     .AddAuthentication(options =>
@@ -50,6 +58,15 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                context.Token = context.Request.Cookies["access_token"];
+                return Task.CompletedTask;
+            }
+        };
     });
 
 var app = builder.Build();
@@ -67,6 +84,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -1,6 +1,6 @@
 using System.Net.Http.Json;
 
-namespace YoutubeSummarizerWeb.Services;
+namespace YoutubeSummarizerWeb.Client.Services;
 
 public class SubscriptionService
 {

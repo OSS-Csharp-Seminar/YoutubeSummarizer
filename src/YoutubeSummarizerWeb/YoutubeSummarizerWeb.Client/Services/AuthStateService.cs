@@ -1,4 +1,4 @@
-namespace YoutubeSummarizerWeb.Services;
+namespace YoutubeSummarizerWeb.Client.Services;
 
 public class AuthStateService
 {
