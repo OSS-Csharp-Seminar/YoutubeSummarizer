@@ -1,4 +1,12 @@
 services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    environment:
+      NGROK_AUTHTOKEN: "${NGROK_AUTHTOKEN}"
+    command: http host.docker.internal:5017
+    ports:
+      - "4040:4040"
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:

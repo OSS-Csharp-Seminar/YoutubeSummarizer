@@ -16,6 +16,9 @@ appsettings.Local.json
 # environment
 .env.local
 
+# LSP cache
+*.lscache
+
 # User-specific files
 *.rsuser
 *.suo

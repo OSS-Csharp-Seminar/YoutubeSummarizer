@@ -8,16 +8,16 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
     {
         private readonly IYoutubeChannelRepository _channelRepo;
         private readonly IYoutubeWebSubClient _webSubClient;
-        private readonly YoutubeWebhookSettings _settings;
+        private readonly IOptionsMonitor<YoutubeWebhookSettings> _settings;
 
         public YoutubeWebhookSubscriptionService(
             IYoutubeChannelRepository channelRepo,
             IYoutubeWebSubClient webSubClient,
-            IOptions<YoutubeWebhookSettings> settings)
+            IOptionsMonitor<YoutubeWebhookSettings> settings)
         {
             _channelRepo = channelRepo;
             _webSubClient = webSubClient;
-            _settings = settings.Value;
+            _settings = settings;
         }
 
         public async Task SubscribeAsync(Guid channelId, CancellationToken cancellationToken = default)
@@ -31,7 +31,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             channel.LastWebhookSubscriptionAttemptUtc = DateTime.UtcNow;
             await _channelRepo.UpdateAsync(channel, cancellationToken);
 
-            await _webSubClient.SubscribeAsync(_settings.CallbackUrl, channel.YoutubeChannelId, cancellationToken);
+            await _webSubClient.SubscribeAsync(_settings.CurrentValue.CallbackUrl, channel.YoutubeChannelId, cancellationToken);
         }
 
         public async Task RenewExpiringSubscriptionsAsync(CancellationToken cancellationToken = default)
@@ -51,7 +51,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             if (string.IsNullOrEmpty(channel.YoutubeChannelId))
                 return;
 
-            await _webSubClient.UnsubscribeAsync(_settings.CallbackUrl, channel.YoutubeChannelId, cancellationToken);
+            await _webSubClient.UnsubscribeAsync(_settings.CurrentValue.CallbackUrl, channel.YoutubeChannelId, cancellationToken);
 
             channel.IsWebhookSubscribed = false;
             channel.WebhookExpiresAtUtc = null;
