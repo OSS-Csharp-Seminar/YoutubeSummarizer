@@ -12,11 +12,11 @@
         </a>
 
         <div class="navbar-links">
-            <a href="/subscriptions" class="nav-link">Subscriptions</a>
-            <a href="/notifications" class="nav-link">Notifications</a>
-
             @if (AuthState.IsLoggedIn)
             {
+                <a href="/subscriptions" class="nav-link">Subscriptions</a>
+                <a href="/notifications" class="nav-link">Notifications</a>
+
                 <div class="user-menu">
                     <button class="user-button" @onclick="ToggleDropdown" @onclick:stopPropagation="true">
                         <span class="user-avatar">@AuthState.DisplayName?[0].ToString().ToUpper()</span>
@@ -25,6 +25,7 @@
 
                     @if (showDropdown)
                     {
+                        <div class="dropdown-overlay" @onclick="CloseDropdown"></div>
                         <div class="dropdown-menu">
                             <button class="dropdown-item" @onclick="GoToAccount">My Account</button>
                             <button class="dropdown-item logout" @onclick="HandleLogout">Logout</button>
@@ -51,6 +52,11 @@
     private void ToggleDropdown()
     {
         showDropdown = !showDropdown;
+    }
+
+    private void CloseDropdown()
+    {
+        showDropdown = false;
     }
 
     private void GoToAccount()

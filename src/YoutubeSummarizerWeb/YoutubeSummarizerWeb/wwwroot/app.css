@@ -157,6 +157,12 @@ a:hover {
     font-weight: 500;
 }
 
+.dropdown-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+}
+
 .dropdown-menu {
     position: absolute;
     top: calc(100% + 8px);
@@ -167,6 +173,7 @@ a:hover {
     min-width: 180px;
     padding: 0.4rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    z-index: 100;
 }
 
 .dropdown-item {
@@ -520,9 +527,114 @@ a:hover {
     color: var(--text-muted);
 }
 
+.subscriptions-list-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    margin-top: 1.5rem;
+}
+
+.subscriptions-list-card h2 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+}
+
+.subscriptions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.subscription-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.subscription-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.channel-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.subscription-style {
+    font-size: 0.82rem;
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.subscription-date {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.no-subscriptions {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.btn-danger {
+    background: transparent;
+    color: var(--error);
+    border: 1px solid var(--error);
+    padding: 0.4rem 1rem;
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-danger:hover {
+    background: rgba(229, 83, 75, 0.12);
+}
+
+.btn-danger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg-primary);
+}
+
+.loading-screen .brand-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
 @media (max-width: 480px) {
     .style-options {
         grid-template-columns: 1fr;
+    }
+
+    .subscription-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
     }
 }
 

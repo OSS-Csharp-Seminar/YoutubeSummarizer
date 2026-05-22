@@ -39,14 +39,14 @@ namespace YoutubeSummarizer.Application.Services
                 var email = dto.Email.Trim();
                 var isValid = await _authRepo.CheckPasswordAsync(email, dto.Password);
                 if (!isValid)
-                    return ServiceResponse<LoginResponseDto>.Failure("Neispravni korisnički podaci.");
+                    return ServiceResponse<LoginResponseDto>.Failure("Invalid credentials.");
 
                 var user = await _authRepo.FindByEmailAsync(email);
                 if (user == null)
-                    return ServiceResponse<LoginResponseDto>.Failure("Neispravni korisnički podaci.");
+                    return ServiceResponse<LoginResponseDto>.Failure("Invalid credentials.");
 
                 if (!user.IsActive)
-                    return ServiceResponse<LoginResponseDto>.Failure("Korisnički račun je deaktiviran.");
+                    return ServiceResponse<LoginResponseDto>.Failure("Account is deactivated.");
 
                 var (accessToken, _) = _jwtService.GenerateAccessToken(user);
                 var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
@@ -55,11 +55,11 @@ namespace YoutubeSummarizer.Application.Services
                 await _refreshTokenRepo.AddAsync(refreshToken, cancellationToken);
 
                 var data = _mapper.MapToLoginResponseDto(user, accessToken, refreshToken.Token);
-                return ServiceResponse<LoginResponseDto>.Success(data, "Uspješna prijava.");
+                return ServiceResponse<LoginResponseDto>.Success(data, "Login successful.");
             }
             catch
             {
-                return ServiceResponse<LoginResponseDto>.Failure("Došlo je do greške.");
+                return ServiceResponse<LoginResponseDto>.Failure("An error occurred.");
             }
         }
 
@@ -74,7 +74,7 @@ namespace YoutubeSummarizer.Application.Services
                 var email = dto.Email.Trim();
                 var existingUser = await _authRepo.FindByEmailAsync(email);
                 if (existingUser != null)
-                    return ServiceResponse<RegisterResponseDto>.Failure("Korisnik već postoji.");
+                    return ServiceResponse<RegisterResponseDto>.Failure("User already exists.");
 
                 var user = await _authRepo.CreateUserAsync(dto.FirstName.Trim(), dto.LastName.Trim(), email, dto.Password);
 
@@ -85,11 +85,11 @@ namespace YoutubeSummarizer.Application.Services
                 await _refreshTokenRepo.AddAsync(refreshToken, cancellationToken);
 
                 var data = _mapper.MapToRegisterResponseDto(user, accessToken, refreshToken.Token);
-                return ServiceResponse<RegisterResponseDto>.Success(data, "Registracija uspješna.");
+                return ServiceResponse<RegisterResponseDto>.Success(data, "Registration successful.");
             }
             catch
             {
-                return ServiceResponse<RegisterResponseDto>.Failure("Došlo je do greške.");
+                return ServiceResponse<RegisterResponseDto>.Failure("An error occurred.");
             }
         }
 
@@ -99,19 +99,19 @@ namespace YoutubeSummarizer.Application.Services
             {
                 var principal = _jwtService.ValidateTokenWithoutLifetime(dto.AccessToken);
                 if (principal == null)
-                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Refresh token nije valjan.");
+                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var userId = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userId))
-                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Refresh token nije valjan.");
+                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var token = await _refreshTokenRepo.GetByTokenAsync(dto.RefreshToken, cancellationToken);
                 if (token == null || !token.IsActive || token.UserId != userId)
-                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Refresh token nije valjan.");
+                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var user = await _userRepo.GetByIdAsync(Guid.Parse(userId));
                 if (user == null)
-                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Refresh token nije valjan.");
+                    return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var (newAccessToken, _) = _jwtService.GenerateAccessToken(user);
                 var newRefreshToken = _jwtService.GenerateRefreshToken(ipAddress);
@@ -129,11 +129,11 @@ namespace YoutubeSummarizer.Application.Services
                         AccessToken = newAccessToken,
                         RefreshToken = newRefreshToken.Token
                     },
-                    "Token uspješno obnovljen.");
+                    "Token refreshed successfully.");
             }
             catch
             {
-                return ServiceResponse<RefreshTokenResponseDto>.Failure("Došlo je do greške.");
+                return ServiceResponse<RefreshTokenResponseDto>.Failure("An error occurred.");
             }
         }
 

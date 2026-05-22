@@ -56,7 +56,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
 
                 var exists = await _subscriptionRepo.ExistsAsync(userId, channel.Id, cancellationToken);
                 if (exists)
-                    return ServiceResponse<SubscribeToYoutubeChannelResponse>.Failure("Već ste pretplaćeni na ovaj kanal.");
+                    return ServiceResponse<SubscribeToYoutubeChannelResponse>.Failure("You are already subscribed to this channel.");
 
                 await _subscriptionRepo.AddAsync(new UserYoutubeChannelSubscription
                 {
@@ -75,11 +75,11 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                         ChannelUrl = channel.ChannelUrl,
                         SummarizationStyle = request.SummarizationStyle
                     },
-                    "Uspješno ste se pretplatili na kanal.");
+                    "Successfully subscribed to channel.");
             }
             catch
             {
-                return ServiceResponse<SubscribeToYoutubeChannelResponse>.Failure("Došlo je do greške.");
+                return ServiceResponse<SubscribeToYoutubeChannelResponse>.Failure("An error occurred.");
             }
         }
         public async Task<ServiceResponse<List<GetUserSubscriptionsResponse>>> GetUserSubscriptionsAsync(
@@ -90,12 +90,15 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                 var userId = _currentUserService.GetCurrentUserId();
                 var subscriptions = await _subscriptionRepo.GetByUserIdAsync(userId, cancellationToken);
 
+                var channelIds = subscriptions.Select(s => s.YoutubeChannelId).Distinct().ToList();
+                var channels = await _channelRepo.GetByIdsAsync(channelIds, cancellationToken);
+                var channelMap = channels.ToDictionary(c => c.Id);
+
                 var result = new List<GetUserSubscriptionsResponse>();
 
                 foreach (var sub in subscriptions)
                 {
-                    var channel = await _channelRepo.GetByIdAsync(sub.YoutubeChannelId, cancellationToken);
-                    if (channel is null) continue;
+                    if (!channelMap.TryGetValue(sub.YoutubeChannelId, out var channel)) continue;
 
                     result.Add(new GetUserSubscriptionsResponse
                     {
@@ -108,11 +111,11 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                     });
                 }
 
-                return ServiceResponse<List<GetUserSubscriptionsResponse>>.Success(result, "Pretplate uspješno dohvaćene.");
+                return ServiceResponse<List<GetUserSubscriptionsResponse>>.Success(result, "Subscriptions retrieved successfully.");
             }
             catch
             {
-                return ServiceResponse<List<GetUserSubscriptionsResponse>>.Failure("Došlo je do greške.");
+                return ServiceResponse<List<GetUserSubscriptionsResponse>>.Failure("An error occurred.");
             }
         }
 
@@ -125,7 +128,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
 
                 var subscription = await _subscriptionRepo.GetByIdAsync(subscriptionId, cancellationToken);
                 if (subscription is null || subscription.UserId != userId)
-                    return ServiceResponse<bool>.Failure("Pretplata nije pronađena.");
+                    return ServiceResponse<bool>.Failure("Subscription not found.");
 
                 var channelId = subscription.YoutubeChannelId;
 
@@ -141,11 +144,11 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                     }
                 }
 
-                return ServiceResponse<bool>.Success(true, "Uspješno ste se odjavili.");
+                return ServiceResponse<bool>.Success(true, "Successfully unsubscribed.");
             }
             catch
             {
-                return ServiceResponse<bool>.Failure("Došlo je do greške.");
+                return ServiceResponse<bool>.Failure("An error occurred.");
             }
         }
     }

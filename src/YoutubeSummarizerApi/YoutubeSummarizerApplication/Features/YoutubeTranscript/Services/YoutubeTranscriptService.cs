@@ -18,11 +18,11 @@ namespace YoutubeSummarizer.Application.Features.YoutubeTranscript.Services
             try
             {
                 var result = await _client.GetTranscriptAsync(request, cancellationToken);
-                return ServiceResponse<GetYoutubeTranscriptResponse>.Success(result, "Transkript uspješno dohvaćen.");
+                return ServiceResponse<GetYoutubeTranscriptResponse>.Success(result, "Transcript retrieved successfully.");
             }
             catch
             {
-                return ServiceResponse<GetYoutubeTranscriptResponse>.Failure("Nije moguće dohvatiti transkript.");
+                return ServiceResponse<GetYoutubeTranscriptResponse>.Failure("Unable to retrieve transcript.");
             }
         }
     }

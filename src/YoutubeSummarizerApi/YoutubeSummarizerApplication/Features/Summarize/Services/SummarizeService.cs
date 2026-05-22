@@ -43,11 +43,11 @@ namespace YoutubeSummarizer.Application.Features.Summarize.Services
 
                 return ServiceResponse<SummarizeResponse>.Success(
                     new SummarizeResponse { Content = content },
-                    "Sažetak uspješno generiran.");
+                    "Summary generated successfully.");
             }
             catch
             {
-                return ServiceResponse<SummarizeResponse>.Failure("Došlo je do greške pri generiranju sažetka.");
+                return ServiceResponse<SummarizeResponse>.Failure("An error occurred while generating the summary.");
             }
         }
     }
