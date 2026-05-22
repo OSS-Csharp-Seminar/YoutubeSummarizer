@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\YoutubeSummarizerDomain\YoutubeSummarizer.Domain.csproj" />
+    <ProjectReference Include="..\YoutubeSummarizer.Domain\YoutubeSummarizer.Domain.csproj" />
   </ItemGroup>
 
 </Project>

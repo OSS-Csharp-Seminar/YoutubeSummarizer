@@ -74,7 +74,23 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.CreateExecutionStrategy().Execute(() => db.Database.Migrate());
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    var retries = 0;
+    const int maxRetries = 10;
+    while (true)
+    {
+        try
+        {
+            db.Database.CreateExecutionStrategy().Execute(() => db.Database.Migrate());
+            break;
+        }
+        catch (Exception ex) when (retries < maxRetries)
+        {
+            retries++;
+            logger.LogWarning("Database not ready (attempt {Attempt}/{Max}): {Message}", retries, maxRetries, ex.Message);
+            Thread.Sleep(3000);
+        }
+    }
 }
 
 if (app.Environment.IsDevelopment())

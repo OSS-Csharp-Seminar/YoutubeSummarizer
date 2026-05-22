@@ -16,8 +16,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\YoutubeSummarizerApplication\YoutubeSummarizer.Application.csproj" />
-    <ProjectReference Include="..\YoutubeSummarizerInfrastructure\YoutubeSummarizer.Infrastructure.csproj" />
+    <ProjectReference Include="..\YoutubeSummarizer.Application\YoutubeSummarizer.Application.csproj" />
+    <ProjectReference Include="..\YoutubeSummarizer.Infrastructure\YoutubeSummarizer.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
