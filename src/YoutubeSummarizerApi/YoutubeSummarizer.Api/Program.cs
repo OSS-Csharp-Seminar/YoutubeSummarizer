@@ -1,14 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using YoutubeSummarizer.Api.DependencyInjection;
 using YoutubeSummarizer.Application.DependencyInjection;
 using YoutubeSummarizer.Infrastructure.DependencyInjection;
-using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Security;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
@@ -71,27 +70,7 @@ builder.Services
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    var retries = 0;
-    const int maxRetries = 10;
-    while (true)
-    {
-        try
-        {
-            db.Database.CreateExecutionStrategy().Execute(() => db.Database.Migrate());
-            break;
-        }
-        catch (Exception ex) when (retries < maxRetries)
-        {
-            retries++;
-            logger.LogWarning("Database not ready (attempt {Attempt}/{Max}): {Message}", retries, maxRetries, ex.Message);
-            Thread.Sleep(3000);
-        }
-    }
-}
+app.Services.MigrateDatabase();
 
 if (app.Environment.IsDevelopment())
 {

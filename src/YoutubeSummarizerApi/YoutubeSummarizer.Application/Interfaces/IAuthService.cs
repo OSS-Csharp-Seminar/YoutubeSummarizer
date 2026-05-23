@@ -8,6 +8,7 @@ namespace YoutubeSummarizer.Application.Interfaces
         Task<ServiceResponse<LoginResponseDto>> LoginAsync(LoginRequestDto dto, string ipAddress, CancellationToken cancellationToken = default);
         Task<ServiceResponse<RegisterResponseDto>> RegisterAsync(RegisterRequestDto dto, string ipAddress, CancellationToken cancellationToken = default);
         Task<ServiceResponse<RefreshTokenResponseDto>> RefreshTokenAsync(RefreshTokenRequestDto dto, string ipAddress, CancellationToken cancellationToken = default);
+        Task<ServiceResponse<UserInfoResponseDto>> GetCurrentUserAsync(string userId, CancellationToken cancellationToken = default);
         Task LogoutAsync(string refreshToken, string ipAddress, CancellationToken cancellationToken = default);
     }
 }

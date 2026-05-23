@@ -1,15 +1,17 @@
 using System.Xml.Linq;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Models;
 
 namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
 {
-    public static class YoutubeAtomXmlParser
+    public class YoutubeAtomXmlParser : IYoutubeWebhookNotificationParser
     {
         private static readonly XNamespace Yt = "http://www.youtube.com/xml/schemas/2015";
         private static readonly XNamespace Atom = "http://www.w3.org/2005/Atom";
 
-        public static (string ChannelId, string VideoId) Parse(string xml)
+        public YoutubeWebhookNotification Parse(string payload)
         {
-            var doc = XDocument.Parse(xml);
+            var doc = XDocument.Parse(payload);
             var entry = doc.Root?.Element(Atom + "entry");
 
             var channelId = entry?.Element(Yt + "channelId")?.Value;
@@ -18,7 +20,7 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
             if (string.IsNullOrEmpty(channelId) || string.IsNullOrEmpty(videoId))
                 throw new InvalidOperationException("Failed to parse YouTube Atom XML: missing channelId or videoId.");
 
-            return (channelId, videoId);
+            return new YoutubeWebhookNotification(channelId, videoId);
         }
     }
 }

@@ -9,10 +9,7 @@ namespace YoutubeSummarizer.Application.Mappings
         {
             return new LoginResponseDto
             {
-                UserId = user.Id.ToString(),
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
+                User = MapToUserInfoResponseDto(user),
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
             };
@@ -22,12 +19,20 @@ namespace YoutubeSummarizer.Application.Mappings
         {
             return new RegisterResponseDto
             {
-                UserId = user.Id.ToString(),
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
+                User = MapToUserInfoResponseDto(user),
                 AccessToken = accessToken,
                 RefreshToken = refreshToken
+            };
+        }
+
+        public UserInfoResponseDto MapToUserInfoResponseDto(User user)
+        {
+            return new UserInfoResponseDto
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName
             };
         }
     }

@@ -137,6 +137,25 @@ namespace YoutubeSummarizer.Application.Services
             }
         }
 
+        public async Task<ServiceResponse<UserInfoResponseDto>> GetCurrentUserAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (!Guid.TryParse(userId, out var parsedUserId))
+                    return ServiceResponse<UserInfoResponseDto>.Failure("Invalid user.");
+
+                var user = await _userRepo.GetByIdAsync(parsedUserId);
+                if (user is null)
+                    return ServiceResponse<UserInfoResponseDto>.Failure("User not found.");
+
+                return ServiceResponse<UserInfoResponseDto>.Success(_mapper.MapToUserInfoResponseDto(user), "User info retrieved.");
+            }
+            catch
+            {
+                return ServiceResponse<UserInfoResponseDto>.Failure("An error occurred.");
+            }
+        }
+
         public async Task LogoutAsync(string refreshToken, string ipAddress, CancellationToken cancellationToken = default)
         {
             var token = await _refreshTokenRepo.GetByTokenAsync(refreshToken, cancellationToken);
@@ -149,3 +168,6 @@ namespace YoutubeSummarizer.Application.Services
         }
     }
 }
+
+
+

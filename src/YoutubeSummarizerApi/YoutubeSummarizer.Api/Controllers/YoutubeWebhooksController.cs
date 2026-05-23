@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
-using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks;
 
 namespace YoutubeSummarizer.Api.Controllers
 {
@@ -41,8 +40,7 @@ namespace YoutubeSummarizer.Api.Controllers
         {
             using var reader = new StreamReader(Request.Body);
             var xml = await reader.ReadToEndAsync(cancellationToken);
-            var (channelId, videoId) = YoutubeAtomXmlParser.Parse(xml);
-            await _notificationService.ProcessNotificationAsync(channelId, videoId, cancellationToken);
+            await _notificationService.ProcessNotificationAsync(xml, cancellationToken);
             return Ok();
         }
     }

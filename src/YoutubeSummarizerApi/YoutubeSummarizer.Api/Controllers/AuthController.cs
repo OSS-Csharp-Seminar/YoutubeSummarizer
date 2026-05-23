@@ -26,16 +26,7 @@ namespace YoutubeSummarizer.Api.Controllers
                 return Unauthorized(result);
 
             SetTokenCookies(result.Data!.AccessToken, result.Data.RefreshToken);
-
-            var userInfo = new UserInfoResponseDto
-            {
-                UserId = Guid.Parse(result.Data.UserId),
-                Email = result.Data.Email,
-                FirstName = result.Data.FirstName,
-                LastName = result.Data.LastName
-            };
-
-            return Ok(ServiceResponse<UserInfoResponseDto>.Success(userInfo, result.Message));
+            return Ok(ServiceResponse<UserInfoResponseDto>.Success(result.Data.User, result.Message));
         }
 
         [HttpPost("register")]
@@ -48,17 +39,8 @@ namespace YoutubeSummarizer.Api.Controllers
                 return BadRequest(ServiceResponse<object>.Failure(result.Message));
 
             SetTokenCookies(result.Data!.AccessToken, result.Data.RefreshToken);
-
-            var userInfo = new UserInfoResponseDto
-            {
-                UserId = Guid.Parse(result.Data.UserId),
-                Email = result.Data.Email,
-                FirstName = result.Data.FirstName,
-                LastName = result.Data.LastName
-            };
-
             return CreatedAtAction(nameof(Login), routeValues: null,
-                value: ServiceResponse<UserInfoResponseDto>.Success(userInfo, result.Message));
+                value: ServiceResponse<UserInfoResponseDto>.Success(result.Data.User, result.Message));
         }
 
         [HttpPost("refresh-token")]
@@ -105,17 +87,17 @@ namespace YoutubeSummarizer.Api.Controllers
         }
 
         [HttpGet("me")]
-        public IActionResult Me()
+        public async Task<IActionResult> Me(CancellationToken cancellationToken)
         {
-            var userInfo = new UserInfoResponseDto
-            {
-                UserId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!),
-                Email = User.FindFirstValue(ClaimTypes.Email)!,
-                FirstName = User.FindFirstValue("FirstName")!,
-                LastName = User.FindFirstValue("LastName")!
-            };
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(ServiceResponse<object>.Failure("User is not authenticated."));
 
-            return Ok(ServiceResponse<UserInfoResponseDto>.Success(userInfo, "User info retrieved."));
+            var result = await _authService.GetCurrentUserAsync(userId, cancellationToken);
+            if (!result.Status)
+                return Unauthorized(result);
+
+            return Ok(result);
         }
 
         private void SetTokenCookies(string accessToken, string refreshToken)

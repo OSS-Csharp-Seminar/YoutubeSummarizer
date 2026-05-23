@@ -8,24 +8,29 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
     {
         private readonly IYoutubeChannelRepository _channelRepo;
         private readonly IUserYoutubeChannelSubscriptionRepository _subscriptionRepo;
+        private readonly IYoutubeWebhookNotificationParser _notificationParser;
         private readonly ILogger<YoutubeWebhookNotificationService> _logger;
 
         public YoutubeWebhookNotificationService(
             IYoutubeChannelRepository channelRepo,
             IUserYoutubeChannelSubscriptionRepository subscriptionRepo,
+            IYoutubeWebhookNotificationParser notificationParser,
             ILogger<YoutubeWebhookNotificationService> logger)
         {
             _channelRepo = channelRepo;
             _subscriptionRepo = subscriptionRepo;
+            _notificationParser = notificationParser;
             _logger = logger;
         }
 
-        public async Task ProcessNotificationAsync(string youtubeChannelId, string videoId, CancellationToken cancellationToken = default)
+        public async Task ProcessNotificationAsync(string payload, CancellationToken cancellationToken = default)
         {
-            var channel = await _channelRepo.GetByYoutubeChannelIdAsync(youtubeChannelId, cancellationToken);
+            var notification = _notificationParser.Parse(payload);
+
+            var channel = await _channelRepo.GetByYoutubeChannelIdAsync(notification.ChannelId, cancellationToken);
             if (channel is null)
             {
-                _logger.LogWarning("Received webhook notification for unknown channel {YoutubeChannelId}.", youtubeChannelId);
+                _logger.LogWarning("Received webhook notification for unknown channel {YoutubeChannelId}.", notification.ChannelId);
                 return;
             }
 
@@ -35,7 +40,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             {
                 _logger.LogInformation(
                     "New video {VideoId} on channel {ChannelId} for user {UserId} with style {Style}. TODO: fetch transcript and summarize.",
-                    videoId, youtubeChannelId, subscription.UserId, subscription.SummarizationStyle);
+                    notification.VideoId, notification.ChannelId, subscription.UserId, subscription.SummarizationStyle);
             }
         }
     }

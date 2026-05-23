@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,6 +53,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IYoutubeChannelRepository, YoutubeChannelRepository>();
             services.AddScoped<IUserYoutubeChannelSubscriptionRepository, UserYoutubeChannelSubscriptionRepository>();
+            services.AddScoped<IYoutubeWebhookNotificationParser, YoutubeAtomXmlParser>();
 
             services.AddHttpClient<IYoutubeTranscriptClient, YoutubeTranscriptClient>(client =>
             {
@@ -72,3 +73,4 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
         }
     }
 }
+
