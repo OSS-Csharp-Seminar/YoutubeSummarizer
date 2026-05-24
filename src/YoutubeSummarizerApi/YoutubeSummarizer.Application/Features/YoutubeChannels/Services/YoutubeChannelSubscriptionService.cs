@@ -151,5 +151,27 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                 return ServiceResponse<bool>.Failure("An error occurred.");
             }
         }
+
+        public async Task<ServiceResponse<bool>> UpdateSummarizationStyleAsync(
+            Guid subscriptionId, UpdateSummarizationStyleRequest request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userId = _currentUserService.GetCurrentUserId();
+
+                var subscription = await _subscriptionRepo.GetByIdAsync(subscriptionId, cancellationToken);
+                if (subscription is null || subscription.UserId != userId)
+                    return ServiceResponse<bool>.Failure("Subscription not found.");
+
+                subscription.SummarizationStyle = request.SummarizationStyle;
+                await _subscriptionRepo.UpdateAsync(subscription, cancellationToken);
+
+                return ServiceResponse<bool>.Success(true, "Summarization style updated.");
+            }
+            catch
+            {
+                return ServiceResponse<bool>.Failure("An error occurred.");
+            }
+        }
     }
 }

@@ -17,13 +17,17 @@
 
         @if (!string.IsNullOrEmpty(errorMessage))
         {
-            <div class="alert alert-error">@errorMessage</div>
+            <div class="alert alert-error alert-dismissable">
+                <span>@errorMessage</span>
+                <button class="alert-close" @onclick="() => errorMessage = null">&times;</button>
+            </div>
         }
 
         @if (successData is not null)
         {
-            <div class="alert alert-success">
-                Subscribed to <strong>@successData.ChannelIdentifier</strong>! You'll receive summaries for new uploads.
+            <div class="alert alert-success alert-dismissable">
+                <span>Subscribed to <strong>@successData.ChannelIdentifier</strong>! You'll receive summaries for new uploads.</span>
+                <button class="alert-close" @onclick="() => successData = null">&times;</button>
             </div>
         }
 
@@ -78,7 +82,27 @@
                     <div class="subscription-item">
                         <div class="subscription-info">
                             <span class="channel-name">@sub.ChannelIdentifier</span>
-                            <span class="subscription-style">@sub.SummarizationStyle</span>
+                            <div class="custom-dropdown">
+                                <div class="custom-dropdown-trigger @(updatingStyleId == sub.SubscriptionId ? "disabled" : "")"
+                                     @onclick="() => ToggleDropdown(sub.SubscriptionId)">
+                                    <span>@sub.SummarizationStyle</span>
+                                    <span class="dropdown-arrow">&#9662;</span>
+                                </div>
+                                @if (openDropdownId == sub.SubscriptionId)
+                                {
+                                    <div class="dropdown-overlay" @onclick="() => openDropdownId = null"></div>
+                                    <div class="custom-dropdown-list">
+                                        @foreach (var style in Enum.GetValues<SummarizationStyle>())
+                                        {
+                                            var s = style;
+                                            <div class="custom-dropdown-item @(sub.SummarizationStyle == s ? "active" : "")"
+                                                 @onclick="() => SelectStyle(sub, s)">
+                                                @s
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
                             <span class="subscription-date">Subscribed @sub.CreatedAtUtc.ToString("MMM dd, yyyy")</span>
                         </div>
                         <button class="btn btn-danger"
@@ -91,9 +115,28 @@
             </div>
         }
 
+        @if (!string.IsNullOrEmpty(unsubscribeSuccess))
+        {
+            <div class="alert alert-success alert-dismissable">
+                <span>@unsubscribeSuccess</span>
+                <button class="alert-close" @onclick="() => unsubscribeSuccess = null">&times;</button>
+            </div>
+        }
+
         @if (!string.IsNullOrEmpty(unsubscribeError))
         {
-            <div class="alert alert-error">@unsubscribeError</div>
+            <div class="alert alert-error alert-dismissable">
+                <span>@unsubscribeError</span>
+                <button class="alert-close" @onclick="() => unsubscribeError = null">&times;</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(styleUpdateError))
+        {
+            <div class="alert alert-error alert-dismissable">
+                <span>@styleUpdateError</span>
+                <button class="alert-close" @onclick="() => styleUpdateError = null">&times;</button>
+            </div>
         }
     </div>
 </div>
@@ -106,7 +149,11 @@
     private List<UserSubscription> subscriptions = new();
     private bool isLoadingSubscriptions;
     private Guid? deletingId;
+    private Guid? updatingStyleId;
+    private Guid? openDropdownId;
     private string? unsubscribeError;
+    private string? unsubscribeSuccess;
+    private string? styleUpdateError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -152,11 +199,14 @@
     {
         deletingId = subscriptionId;
         unsubscribeError = null;
+        unsubscribeSuccess = null;
 
+        var channelName = subscriptions.FirstOrDefault(s => s.SubscriptionId == subscriptionId)?.ChannelIdentifier;
         var result = await SubscriptionService.UnsubscribeAsync(subscriptionId);
 
         if (result.Success)
         {
+            unsubscribeSuccess = $"Unsubscribed from {channelName}.";
             await LoadSubscriptions();
         }
         else
@@ -165,6 +215,34 @@
         }
 
         deletingId = null;
+    }
+
+    private void ToggleDropdown(Guid subscriptionId)
+    {
+        if (updatingStyleId == subscriptionId) return;
+        openDropdownId = openDropdownId == subscriptionId ? null : subscriptionId;
+    }
+
+    private async Task SelectStyle(UserSubscription sub, SummarizationStyle newStyle)
+    {
+        openDropdownId = null;
+        if (newStyle == sub.SummarizationStyle) return;
+
+        updatingStyleId = sub.SubscriptionId;
+        styleUpdateError = null;
+
+        var result = await SubscriptionService.UpdateSummarizationStyleAsync(sub.SubscriptionId, newStyle);
+
+        if (result.Success)
+        {
+            sub.SummarizationStyle = newStyle;
+        }
+        else
+        {
+            styleUpdateError = result.Error;
+        }
+
+        updatingStyleId = null;
     }
 
     private static string GetStyleDescription(SummarizationStyle style) => style switch

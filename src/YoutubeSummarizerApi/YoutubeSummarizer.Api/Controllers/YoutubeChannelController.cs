@@ -45,5 +45,17 @@ namespace YoutubeSummarizer.Api.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        [HttpPut("subscriptions/{subscriptionId:guid}/style")]
+        public async Task<IActionResult> UpdateSummarizationStyle(
+            Guid subscriptionId,
+            [FromBody] UpdateSummarizationStyleRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _subscriptionService.UpdateSummarizationStyleAsync(subscriptionId, request, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

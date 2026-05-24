@@ -40,6 +40,18 @@ public class SubscriptionService
             return new UnsubscribeResult { Success = false, Error = result?.Message ?? "Failed to unsubscribe." };
         return new UnsubscribeResult { Success = true };
     }
+
+    public async Task<UpdateStyleResult> UpdateSummarizationStyleAsync(Guid subscriptionId, SummarizationStyle style)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Put, $"/api/youtube-channels/subscriptions/{subscriptionId}/style");
+        request.Content = JsonContent.Create(new { SummarizationStyle = (int)style });
+
+        var response = await _httpClient.SendAsync(request);
+        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+        if (result == null || !result.Status)
+            return new UpdateStyleResult { Success = false, Error = result?.Message ?? "Failed to update style." };
+        return new UpdateStyleResult { Success = true };
+    }
 }
 
 public enum SummarizationStyle
@@ -76,6 +88,12 @@ public class UserSubscription
 }
 
 public class UnsubscribeResult
+{
+    public bool Success { get; set; }
+    public string? Error { get; set; }
+}
+
+public class UpdateStyleResult
 {
     public bool Success { get; set; }
     public string? Error { get; set; }

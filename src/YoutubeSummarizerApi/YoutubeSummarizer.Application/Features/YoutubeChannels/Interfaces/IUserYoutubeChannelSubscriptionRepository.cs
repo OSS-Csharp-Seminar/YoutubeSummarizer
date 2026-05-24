@@ -10,5 +10,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces
         Task<List<UserYoutubeChannelSubscription>> GetByUserIdAsync(string userId, CancellationToken cancellationToken = default);
         Task<UserYoutubeChannelSubscription?> GetByIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default);
         Task DeleteAsync(UserYoutubeChannelSubscription subscription, CancellationToken cancellationToken = default);
+        Task UpdateAsync(UserYoutubeChannelSubscription subscription, CancellationToken cancellationToken = default);
     }
 }

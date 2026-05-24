@@ -10,5 +10,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces
             CancellationToken cancellationToken = default);
         Task<ServiceResponse<List<GetUserSubscriptionsResponse>>> GetUserSubscriptionsAsync(CancellationToken cancellationToken = default);
         Task<ServiceResponse<bool>> UnsubscribeAsync(Guid subscriptionId, CancellationToken cancellationToken = default);
+        Task<ServiceResponse<bool>> UpdateSummarizationStyleAsync(Guid subscriptionId, UpdateSummarizationStyleRequest request, CancellationToken cancellationToken = default);
     }
 }
