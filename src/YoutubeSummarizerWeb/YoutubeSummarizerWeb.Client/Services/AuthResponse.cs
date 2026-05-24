@@ -7,6 +7,7 @@ public class AuthResponse
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string FullName => $"{FirstName} {LastName}".Trim();
+    public List<string> Roles { get; set; } = new();
 }
 
 public class AuthResult

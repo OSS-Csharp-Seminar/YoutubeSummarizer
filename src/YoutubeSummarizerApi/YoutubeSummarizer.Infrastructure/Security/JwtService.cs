@@ -17,7 +17,7 @@ namespace YoutubeSummarizer.Infrastructure.Security
             _jwtSettings = jwtSettings;
         }
 
-        public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user)
+        public (string Token, DateTime ExpiresAtUtc) GenerateAccessToken(User user, IList<string> roles)
         {
             var keyBytes = Encoding.UTF8.GetBytes(_jwtSettings.Key);
             if (keyBytes.Length < 32)
@@ -35,6 +35,9 @@ namespace YoutubeSummarizer.Infrastructure.Security
                 new Claim("FirstName", user.FirstName),
                 new Claim("LastName", user.LastName)
             };
+
+            foreach (var role in roles)
+                claims.Add(new Claim(ClaimTypes.Role, role));
 
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,

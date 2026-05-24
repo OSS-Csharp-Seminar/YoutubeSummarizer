@@ -4,6 +4,7 @@ public class AuthStateService
 {
     public AuthResponse? CurrentUser { get; private set; }
     public bool IsLoggedIn => CurrentUser != null;
+    public bool IsAdmin => CurrentUser?.Roles.Contains("Admin") == true;
     public string? DisplayName => CurrentUser?.Email.Split('@')[0];
 
     public event Action? OnChange;

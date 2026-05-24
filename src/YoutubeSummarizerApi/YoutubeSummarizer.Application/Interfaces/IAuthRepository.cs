@@ -7,5 +7,6 @@ namespace YoutubeSummarizer.Application.Interfaces
         Task<User?> FindByEmailAsync(string email);
         Task<bool> CheckPasswordAsync(string email, string password);
         Task<User> CreateUserAsync(string firstName, string lastName, string email, string password);
+        Task<IList<string>> GetRolesAsync(string email);
     }
 }

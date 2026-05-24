@@ -48,13 +48,14 @@ namespace YoutubeSummarizer.Application.Services
                 if (!user.IsActive)
                     return ServiceResponse<LoginResponseDto>.Failure("Account is deactivated.");
 
-                var (accessToken, _) = _jwtService.GenerateAccessToken(user);
+                var roles = await _authRepo.GetRolesAsync(email);
+                var (accessToken, _) = _jwtService.GenerateAccessToken(user, roles);
                 var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
                 refreshToken.UserId = user.Id.ToString();
 
                 await _refreshTokenRepo.AddAsync(refreshToken, cancellationToken);
 
-                var data = _mapper.MapToLoginResponseDto(user, accessToken, refreshToken.Token);
+                var data = _mapper.MapToLoginResponseDto(user, accessToken, refreshToken.Token, roles);
                 return ServiceResponse<LoginResponseDto>.Success(data, "Login successful.");
             }
             catch
@@ -78,13 +79,14 @@ namespace YoutubeSummarizer.Application.Services
 
                 var user = await _authRepo.CreateUserAsync(dto.FirstName.Trim(), dto.LastName.Trim(), email, dto.Password);
 
-                var (accessToken, _) = _jwtService.GenerateAccessToken(user);
+                var roles = await _authRepo.GetRolesAsync(email);
+                var (accessToken, _) = _jwtService.GenerateAccessToken(user, roles);
                 var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
                 refreshToken.UserId = user.Id.ToString();
 
                 await _refreshTokenRepo.AddAsync(refreshToken, cancellationToken);
 
-                var data = _mapper.MapToRegisterResponseDto(user, accessToken, refreshToken.Token);
+                var data = _mapper.MapToRegisterResponseDto(user, accessToken, refreshToken.Token, roles);
                 return ServiceResponse<RegisterResponseDto>.Success(data, "Registration successful.");
             }
             catch
@@ -113,7 +115,8 @@ namespace YoutubeSummarizer.Application.Services
                 if (user == null)
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
-                var (newAccessToken, _) = _jwtService.GenerateAccessToken(user);
+                var roles = await _authRepo.GetRolesAsync(user.Email);
+                var (newAccessToken, _) = _jwtService.GenerateAccessToken(user, roles);
                 var newRefreshToken = _jwtService.GenerateRefreshToken(ipAddress);
                 newRefreshToken.UserId = userId;
 
@@ -148,7 +151,8 @@ namespace YoutubeSummarizer.Application.Services
                 if (user is null)
                     return ServiceResponse<UserInfoResponseDto>.Failure("User not found.");
 
-                return ServiceResponse<UserInfoResponseDto>.Success(_mapper.MapToUserInfoResponseDto(user), "User info retrieved.");
+                var roles = await _authRepo.GetRolesAsync(user.Email);
+                return ServiceResponse<UserInfoResponseDto>.Success(_mapper.MapToUserInfoResponseDto(user, roles), "User info retrieved.");
             }
             catch
             {

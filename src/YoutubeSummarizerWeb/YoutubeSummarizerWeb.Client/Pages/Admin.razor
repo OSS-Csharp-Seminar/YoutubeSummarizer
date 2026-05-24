@@ -1,0 +1,29 @@
+@page "/admin"
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Admin - YoutubeSummarizer</PageTitle>
+
+<div class="subscriptions-page">
+    <div class="subscriptions-header">
+        <h1>Admin Panel</h1>
+        <p class="page-subtitle">Manage the application.</p>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!AuthState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (!AuthState.IsAdmin)
+        {
+            Navigation.NavigateTo("/?error=unauthorized");
+            return;
+        }
+    }
+}

@@ -72,7 +72,18 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
 
             await _db.SaveChangesAsync();
 
+            await _userManager.AddToRoleAsync(applicationUser, "User");
+
             return domainUser;
+        }
+
+        public async Task<IList<string>> GetRolesAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user is null)
+                return Array.Empty<string>();
+
+            return await _userManager.GetRolesAsync(user);
         }
     }
 }

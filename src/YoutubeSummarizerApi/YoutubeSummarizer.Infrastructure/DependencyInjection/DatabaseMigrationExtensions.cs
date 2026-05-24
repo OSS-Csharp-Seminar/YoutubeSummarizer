@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using YoutubeSummarizer.Domain.Models;
+using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
 namespace YoutubeSummarizer.Infrastructure.DependencyInjection
@@ -29,6 +32,47 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
                     Thread.Sleep(3000);
                 }
             }
+
+            SeedAdminUser(scope.ServiceProvider).GetAwaiter().GetResult();
+        }
+
+        private static async Task SeedAdminUser(IServiceProvider services)
+        {
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            var db = services.GetRequiredService<ApplicationDbContext>();
+
+            const string email = "admin@youtubesummarizer.com";
+
+            if (await userManager.FindByEmailAsync(email) is not null)
+                return;
+
+            var domainUser = new User
+            {
+                Id = Guid.NewGuid(),
+                FirstName = "Admin",
+                LastName = "Adminovich",
+                Email = email,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            db.DomainUsers.Add(domainUser);
+
+            var applicationUser = new ApplicationUser
+            {
+                Id = Guid.NewGuid(),
+                Email = email,
+                UserName = email,
+                FirstName = "Admin",
+                LastName = "Adminovich",
+                DomainUserId = domainUser.Id,
+                DomainUser = domainUser,
+                EmailConfirmed = true
+            };
+
+            var result = await userManager.CreateAsync(applicationUser, "Abcd1$");
+            if (result.Succeeded)
+                await userManager.AddToRoleAsync(applicationUser, "Admin");
         }
     }
 }

@@ -1,9 +1,18 @@
 @page "/"
 @inject AuthStateService AuthState
+@inject NavigationManager Navigation
 
 <PageTitle>YoutubeSummarizer</PageTitle>
 
 <div class="landing">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-error alert-dismissable" style="max-width: 700px; margin: 0 auto 1rem;">
+            <span>@errorMessage</span>
+            <button class="alert-close" @onclick="DismissError">&times;</button>
+        </div>
+    }
+
     <div class="hero">
         <h1 class="hero-title">YouTube, summarized</h1>
         <p class="hero-subtitle">
@@ -34,3 +43,28 @@
         </div>
     </div>
 </div>
+
+@code {
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        var uri = new Uri(Navigation.Uri);
+        var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+        var error = query["error"];
+        if (!string.IsNullOrEmpty(error))
+        {
+            errorMessage = error switch
+            {
+                "unauthorized" => "You do not have permission to access that page.",
+                _ => null
+            };
+        }
+    }
+
+    private void DismissError()
+    {
+        errorMessage = null;
+        Navigation.NavigateTo("/", replace: true);
+    }
+}
