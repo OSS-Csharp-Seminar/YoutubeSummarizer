@@ -3,7 +3,7 @@ using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Domain.Models;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
-namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
+namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
 {
     public class YoutubeChannelRepository : IYoutubeChannelRepository
     {

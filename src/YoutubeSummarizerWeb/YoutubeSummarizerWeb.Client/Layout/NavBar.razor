@@ -1,7 +1,9 @@
 @inject AuthStateService AuthState
 @inject AuthService AuthService
+@inject NotificationService NotificationService
+@inject NotificationHubConnection NotificationHub
 @inject NavigationManager Navigation
-@implements IDisposable
+@implements IAsyncDisposable
 
 <nav class="navbar">
     <div class="navbar-inner">
@@ -14,7 +16,13 @@
             @if (AuthState.IsLoggedIn)
             {
                 <a href="/subscriptions" class="nav-link">Subscriptions</a>
-                <a href="/notifications" class="nav-link">Notifications</a>
+                <a href="/notifications" class="nav-link nav-link-badge">
+                    Notifications
+                    @if (unreadCount > 0)
+                    {
+                        <span class="badge">@(unreadCount > 99 ? "99+" : unreadCount)</span>
+                    }
+                </a>
                 @if (AuthState.IsAdmin)
                 {
                     <a href="/admin" class="nav-link">Admin</a>
@@ -46,10 +54,39 @@
 
 @code {
     private bool showDropdown;
+    private int unreadCount;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        AuthState.OnChange += StateHasChanged;
+        AuthState.OnChange += OnAuthStateChanged;
+        NotificationService.OnUnreadCountChanged += OnUnreadChanged;
+        NotificationHub.OnNotificationReceived += OnUnreadChanged;
+        if (AuthState.IsLoggedIn)
+        {
+            unreadCount = await NotificationService.GetUnreadCountAsync();
+            await NotificationHub.StartAsync();
+        }
+    }
+
+    private async void OnAuthStateChanged()
+    {
+        if (AuthState.IsLoggedIn)
+        {
+            unreadCount = await NotificationService.GetUnreadCountAsync();
+            await NotificationHub.StartAsync();
+        }
+        else
+        {
+            unreadCount = 0;
+            await NotificationHub.StopAsync();
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnUnreadChanged()
+    {
+        unreadCount = await NotificationService.GetUnreadCountAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void ToggleDropdown()
@@ -75,8 +112,11 @@
         Navigation.NavigateTo("/login");
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
-        AuthState.OnChange -= StateHasChanged;
+        AuthState.OnChange -= OnAuthStateChanged;
+        NotificationService.OnUnreadCountChanged -= OnUnreadChanged;
+        NotificationHub.OnNotificationReceived -= OnUnreadChanged;
+        await NotificationHub.StopAsync();
     }
 }

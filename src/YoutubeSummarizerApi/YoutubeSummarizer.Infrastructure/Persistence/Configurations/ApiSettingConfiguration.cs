@@ -9,6 +9,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<ApiSetting> builder)
         {
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
 
             builder.Property(x => x.ProviderName)
                 .IsRequired()

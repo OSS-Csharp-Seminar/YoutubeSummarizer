@@ -9,6 +9,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<RefreshToken> builder)
         {
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
 
             builder.Property(x => x.Token)
                 .IsRequired()
@@ -17,8 +18,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
             builder.HasIndex(x => x.Token).IsUnique();
 
             builder.Property(x => x.UserId)
-                .IsRequired()
-                .HasMaxLength(50);
+                .IsRequired();
 
             builder.HasIndex(x => x.UserId);
 

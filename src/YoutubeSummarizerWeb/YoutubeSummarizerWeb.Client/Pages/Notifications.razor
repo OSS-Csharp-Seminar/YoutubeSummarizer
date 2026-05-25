@@ -1,8 +1,319 @@
 @page "/notifications"
+@inject NotificationService NotificationService
+@inject NotificationHubConnection NotificationHub
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+@implements IDisposable
 
 <PageTitle>Notifications - YoutubeSummarizer</PageTitle>
 
-<div class="page-container">
-    <h2>Notifications</h2>
-    <p class="text-muted">Your video summaries and updates will appear here. This feature is coming soon.</p>
+<div class="subscriptions-page">
+    <div class="subscriptions-header">
+        <div class="notifications-title-row">
+            <h1>Notifications</h1>
+            @if (unreadCount > 0)
+            {
+                <button class="btn btn-secondary btn-sm" @onclick="HandleMarkAllAsRead" disabled="@markingAllRead">
+                    @(markingAllRead ? "Marking..." : "Mark all as read")
+                </button>
+            }
+        </div>
+        <p class="page-subtitle">Stay updated with channel uploads and announcements.</p>
+    </div>
+
+    <div class="notifications-filters">
+        <div class="filter-row">
+            <div class="custom-dropdown">
+                <div class="custom-dropdown-trigger" @onclick="() => typeDropdownOpen = !typeDropdownOpen">
+                    <span>@(selectedType.HasValue ? FormatType(selectedType.Value) : "All Types")</span>
+                    <span class="dropdown-arrow">&#9662;</span>
+                </div>
+                @if (typeDropdownOpen)
+                {
+                    <div class="dropdown-overlay" @onclick="() => typeDropdownOpen = false"></div>
+                    <div class="custom-dropdown-list">
+                        <div class="custom-dropdown-item @(selectedType == null ? "active" : "")"
+                             @onclick="() => SelectType(null)">All Types</div>
+                        @foreach (var t in Enum.GetValues<NotificationType>())
+                        {
+                            var tv = t;
+                            <div class="custom-dropdown-item @(selectedType == tv ? "active" : "")"
+                                 @onclick="() => SelectType(tv)">@FormatType(tv)</div>
+                        }
+                    </div>
+                }
+            </div>
+
+            <input type="text" class="form-input filter-search" placeholder="Search by sender..."
+                   @bind="senderSearch" @bind:event="oninput" @onkeyup="HandleSearchKeyUp" />
+
+            <div class="custom-dropdown">
+                <div class="custom-dropdown-trigger" @onclick="() => sortDropdownOpen = !sortDropdownOpen">
+                    <span>@(sortDescending ? "Newest first" : "Oldest first")</span>
+                    <span class="dropdown-arrow">&#9662;</span>
+                </div>
+                @if (sortDropdownOpen)
+                {
+                    <div class="dropdown-overlay" @onclick="() => sortDropdownOpen = false"></div>
+                    <div class="custom-dropdown-list">
+                        <div class="custom-dropdown-item @(sortDescending ? "active" : "")"
+                             @onclick="() => SelectSort(true)">Newest first</div>
+                        <div class="custom-dropdown-item @(!sortDescending ? "active" : "")"
+                             @onclick="() => SelectSort(false)">Oldest first</div>
+                    </div>
+                }
+            </div>
+
+            <div class="custom-dropdown">
+                <div class="custom-dropdown-trigger" @onclick="() => pageSizeDropdownOpen = !pageSizeDropdownOpen">
+                    <span>@pageSize per page</span>
+                    <span class="dropdown-arrow">&#9662;</span>
+                </div>
+                @if (pageSizeDropdownOpen)
+                {
+                    <div class="dropdown-overlay" @onclick="() => pageSizeDropdownOpen = false"></div>
+                    <div class="custom-dropdown-list">
+                        @foreach (var size in pageSizeOptions)
+                        {
+                            var s = size;
+                            <div class="custom-dropdown-item @(pageSize == s ? "active" : "")"
+                                 @onclick="() => SelectPageSize(s)">@s per page</div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-error alert-dismissable">
+            <span>@errorMessage</span>
+            <button class="alert-close" @onclick="() => errorMessage = null">&times;</button>
+        </div>
+    }
+
+    @if (isLoading)
+    {
+        <p class="text-muted">Loading notifications...</p>
+    }
+    else if (notifications.Count == 0)
+    {
+        <div class="notifications-empty">
+            <p>No notifications yet.</p>
+        </div>
+    }
+    else
+    {
+        <div class="notifications-list">
+            @foreach (var n in notifications)
+            {
+                <div class="notification-item @(!n.IsRead ? "unread" : "")">
+                    <div class="notification-header" @onclick="() => ToggleExpand(n.Id)">
+                        <div class="notification-meta">
+                            <span class="notification-type-badge @(n.Type == NotificationType.Global ? "type-global" : "type-video")">
+                                @FormatType(n.Type)
+                            </span>
+                            <span class="notification-sender">@n.SenderName</span>
+                            <span class="notification-date">@n.CreatedAtUtc.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</span>
+                        </div>
+                        <span class="notification-expand">@(expandedIds.Contains(n.Id) ? "▲" : "▼")</span>
+                    </div>
+                    <div class="notification-title">@n.Title</div>
+                    @if (expandedIds.Contains(n.Id))
+                    {
+                        <div class="notification-content">@n.Content</div>
+                    }
+                    <div class="notification-actions">
+                        @if (!n.IsRead)
+                        {
+                            <button class="btn-link" @onclick="() => HandleMarkAsRead(n)" disabled="@(actionId == n.Id)">Mark as read</button>
+                        }
+                        <button class="btn-link btn-link-danger" @onclick="() => HandleDismiss(n)" disabled="@(actionId == n.Id)">Dismiss</button>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (totalCount > pageSize)
+        {
+            <div class="pagination">
+                <button class="btn btn-secondary btn-sm" disabled="@(currentPage <= 1)" @onclick="() => GoToPage(currentPage - 1)">Previous</button>
+                <span class="pagination-info">Page @(currentPage) of @totalPages</span>
+                <button class="btn btn-secondary btn-sm" disabled="@(currentPage >= totalPages)" @onclick="() => GoToPage(currentPage + 1)">Next</button>
+            </div>
+        }
+    }
 </div>
+
+@code {
+    private List<NotificationItem> notifications = new();
+    private int totalCount;
+    private int currentPage = 1;
+    private int pageSize = 10;
+    private int totalPages => (int)Math.Ceiling((double)totalCount / pageSize);
+    private bool isLoading;
+    private bool sortDescending = true;
+    private NotificationType? selectedType;
+    private string? senderSearch;
+    private string? errorMessage;
+    private int unreadCount;
+    private bool markingAllRead;
+    private Guid? actionId;
+    private HashSet<Guid> expandedIds = new();
+    private int[] pageSizeOptions = { 5, 10, 25, 50 };
+
+    private bool typeDropdownOpen;
+    private bool sortDropdownOpen;
+    private bool pageSizeDropdownOpen;
+
+    private System.Timers.Timer? searchDebounce;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        NotificationService.OnUnreadCountChanged += OnUnreadChanged;
+        NotificationHub.OnNotificationReceived += OnHubNotificationReceived;
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        StateHasChanged();
+
+        var countTask = NotificationService.GetUnreadCountAsync();
+        var notifTask = NotificationService.GetNotificationsAsync(selectedType, senderSearch, sortDescending, currentPage, pageSize);
+
+        await Task.WhenAll(countTask, notifTask);
+
+        unreadCount = countTask.Result;
+        var result = notifTask.Result;
+
+        if (result.Success && result.Data != null)
+        {
+            notifications = result.Data.Items;
+            totalCount = result.Data.TotalCount;
+        }
+        else
+        {
+            errorMessage = result.Error;
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async void OnUnreadChanged()
+    {
+        unreadCount = await NotificationService.GetUnreadCountAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnHubNotificationReceived()
+    {
+        await InvokeAsync(LoadData);
+    }
+
+    private async Task SelectType(NotificationType? type)
+    {
+        typeDropdownOpen = false;
+        selectedType = type;
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private async Task SelectSort(bool desc)
+    {
+        sortDropdownOpen = false;
+        sortDescending = desc;
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private async Task SelectPageSize(int size)
+    {
+        pageSizeDropdownOpen = false;
+        pageSize = size;
+        currentPage = 1;
+        await LoadData();
+    }
+
+    private void HandleSearchKeyUp()
+    {
+        searchDebounce?.Stop();
+        searchDebounce?.Dispose();
+        searchDebounce = new System.Timers.Timer(400);
+        searchDebounce.Elapsed += async (_, _) =>
+        {
+            searchDebounce?.Stop();
+            currentPage = 1;
+            await InvokeAsync(LoadData);
+        };
+        searchDebounce.AutoReset = false;
+        searchDebounce.Start();
+    }
+
+    private async Task GoToPage(int newPage)
+    {
+        currentPage = newPage;
+        await LoadData();
+    }
+
+    private void ToggleExpand(Guid id)
+    {
+        if (!expandedIds.Remove(id))
+            expandedIds.Add(id);
+    }
+
+    private async Task HandleMarkAsRead(NotificationItem n)
+    {
+        actionId = n.Id;
+        var ok = await NotificationService.MarkAsReadAsync(n.Id);
+        if (ok) n.IsRead = true;
+        actionId = null;
+    }
+
+    private async Task HandleDismiss(NotificationItem n)
+    {
+        actionId = n.Id;
+        var ok = await NotificationService.DismissAsync(n.Id);
+        if (ok)
+        {
+            notifications.Remove(n);
+            totalCount--;
+        }
+        actionId = null;
+    }
+
+    private async Task HandleMarkAllAsRead()
+    {
+        markingAllRead = true;
+        var ok = await NotificationService.MarkAllAsReadAsync();
+        if (ok)
+        {
+            foreach (var n in notifications) n.IsRead = true;
+            unreadCount = 0;
+        }
+        markingAllRead = false;
+    }
+
+    private static string FormatType(NotificationType type) => type switch
+    {
+        NotificationType.NewVideo => "New video",
+        NotificationType.Global => "Global",
+        _ => type.ToString()
+    };
+
+    public void Dispose()
+    {
+        NotificationService.OnUnreadCountChanged -= OnUnreadChanged;
+        NotificationHub.OnNotificationReceived -= OnHubNotificationReceived;
+        searchDebounce?.Dispose();
+    }
+}

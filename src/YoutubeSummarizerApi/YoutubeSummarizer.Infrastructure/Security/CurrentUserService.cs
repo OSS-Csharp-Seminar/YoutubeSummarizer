@@ -13,10 +13,11 @@ namespace YoutubeSummarizer.Infrastructure.Security
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public string GetCurrentUserId()
+        public Guid GetCurrentUserId()
         {
-            return _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier)
+            var value = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier)
                 ?? throw new UnauthorizedAccessException("User is not authenticated.");
+            return Guid.Parse(value);
         }
     }
 }

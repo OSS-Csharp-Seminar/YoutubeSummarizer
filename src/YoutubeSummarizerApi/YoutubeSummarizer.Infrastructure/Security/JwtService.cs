@@ -56,7 +56,6 @@ namespace YoutubeSummarizer.Infrastructure.Security
             RandomNumberGenerator.Fill(bytes);
             return new RefreshToken
             {
-                Id = Guid.NewGuid(),
                 Token = Convert.ToBase64String(bytes),
                 CreatedAtUtc = DateTime.UtcNow,
                 ExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays),

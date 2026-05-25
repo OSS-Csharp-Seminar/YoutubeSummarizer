@@ -51,7 +51,7 @@ namespace YoutubeSummarizer.Application.Services
                 var roles = await _authRepo.GetRolesAsync(email);
                 var (accessToken, _) = _jwtService.GenerateAccessToken(user, roles);
                 var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
-                refreshToken.UserId = user.Id.ToString();
+                refreshToken.UserId = user.Id;
 
                 await _refreshTokenRepo.AddAsync(refreshToken, cancellationToken);
 
@@ -82,7 +82,7 @@ namespace YoutubeSummarizer.Application.Services
                 var roles = await _authRepo.GetRolesAsync(email);
                 var (accessToken, _) = _jwtService.GenerateAccessToken(user, roles);
                 var refreshToken = _jwtService.GenerateRefreshToken(ipAddress);
-                refreshToken.UserId = user.Id.ToString();
+                refreshToken.UserId = user.Id;
 
                 await _refreshTokenRepo.AddAsync(refreshToken, cancellationToken);
 
@@ -103,15 +103,15 @@ namespace YoutubeSummarizer.Application.Services
                 if (principal == null)
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
-                var userId = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                var userIdClaim = principal.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var token = await _refreshTokenRepo.GetByTokenAsync(dto.RefreshToken, cancellationToken);
                 if (token == null || !token.IsActive || token.UserId != userId)
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
-                var user = await _userRepo.GetByIdAsync(Guid.Parse(userId));
+                var user = await _userRepo.GetByIdAsync(userId);
                 if (user == null)
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 

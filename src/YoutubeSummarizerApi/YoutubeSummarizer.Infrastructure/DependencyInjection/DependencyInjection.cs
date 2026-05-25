@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Features.Summarize;
+using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
@@ -15,7 +16,7 @@ using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks;
 using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
-using YoutubeSummarizer.Infrastructure.Persistence.Repositorys;
+using YoutubeSummarizer.Infrastructure.Persistence.Repositories;
 using YoutubeSummarizer.Infrastructure.Security;
 
 namespace YoutubeSummarizer.Infrastructure.DependencyInjection
@@ -53,6 +54,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<ICurrentUserService, CurrentUserService>();
             services.AddScoped<IYoutubeChannelRepository, YoutubeChannelRepository>();
             services.AddScoped<IUserYoutubeChannelSubscriptionRepository, UserYoutubeChannelSubscriptionRepository>();
+            services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IYoutubeWebhookNotificationParser, YoutubeAtomXmlParser>();
 
             services.AddHttpClient<IYoutubeTranscriptClient, YoutubeTranscriptClient>(client =>

@@ -9,6 +9,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
         public void Configure(EntityTypeBuilder<YoutubeChannel> builder)
         {
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
             builder.Property(x => x.ChannelIdentifier).IsRequired().HasMaxLength(200);
             builder.HasIndex(x => x.ChannelIdentifier).IsUnique();
             builder.Property(x => x.ChannelUrl).IsRequired();

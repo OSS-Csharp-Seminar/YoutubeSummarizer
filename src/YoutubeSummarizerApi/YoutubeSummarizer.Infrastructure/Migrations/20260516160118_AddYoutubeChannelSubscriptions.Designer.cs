@@ -327,11 +327,10 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
 
             modelBuilder.Entity("YoutubeSummarizer.Infrastructure.Persistence.Entities.ApiSetting", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWSEQUENTIALID()");
 
                     b.Property<string>("ApiKey")
                         .IsRequired()

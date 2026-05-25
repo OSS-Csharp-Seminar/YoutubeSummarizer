@@ -1,4 +1,4 @@
-﻿using YoutubeSummarizer.Domain.Models;
+using YoutubeSummarizer.Domain.Models;
 
 namespace YoutubeSummarizer.Application.Interfaces
 {

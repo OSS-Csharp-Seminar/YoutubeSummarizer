@@ -1,8 +1,9 @@
-﻿using YoutubeSummarizer.Application.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Models;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
-namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
+namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
 {
     public class UserRepository : IUserRepository
     {
@@ -24,6 +25,12 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
             _db.DomainUsers.Add(user);
             await _db.SaveChangesAsync();
         }
+
+        public async Task<List<Guid>> GetAllActiveUserIdsAsync(CancellationToken cancellationToken = default)
+            => await _db.Users
+                .Where(u => u.DomainUser != null && u.DomainUser.IsActive)
+                .Select(u => u.DomainUser!.Id)
+                .ToListAsync(cancellationToken);
     }
 }
 

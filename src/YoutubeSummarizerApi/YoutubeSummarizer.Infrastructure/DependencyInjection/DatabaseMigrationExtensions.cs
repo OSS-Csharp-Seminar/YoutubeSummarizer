@@ -48,7 +48,6 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
 
             var domainUser = new User
             {
-                Id = Guid.NewGuid(),
                 FirstName = "Admin",
                 LastName = "Adminovich",
                 Email = email,
@@ -57,10 +56,10 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             };
 
             db.DomainUsers.Add(domainUser);
+            await db.SaveChangesAsync();
 
             var applicationUser = new ApplicationUser
             {
-                Id = Guid.NewGuid(),
                 Email = email,
                 UserName = email,
                 FirstName = "Admin",

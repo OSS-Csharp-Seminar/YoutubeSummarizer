@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
-namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
+namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
 {
     public class ApiSettingsRepository : IApiSettingsRepository
     {

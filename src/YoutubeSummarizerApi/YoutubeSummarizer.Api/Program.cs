@@ -86,5 +86,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<YoutubeSummarizer.Api.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();

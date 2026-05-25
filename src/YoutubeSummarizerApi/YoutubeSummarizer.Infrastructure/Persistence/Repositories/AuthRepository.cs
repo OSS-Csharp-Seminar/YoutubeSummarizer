@@ -4,7 +4,7 @@ using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Models;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 
-namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
+namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
 {
     public class AuthRepository : IAuthRepository
     {
@@ -43,7 +43,6 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
         {
             var domainUser = new User
             {
-                Id = Guid.NewGuid(),
                 FirstName = firstName,
                 LastName = lastName,
                 Email = email,
@@ -53,7 +52,6 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositorys
 
             var applicationUser = new ApplicationUser
             {
-                Id = Guid.NewGuid(),
                 Email = email,
                 UserName = email,
                 FirstName = firstName,

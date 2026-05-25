@@ -14,6 +14,8 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.DbContext
         public DbSet<YoutubeChannel> YoutubeChannels { get; set; }
         public DbSet<UserYoutubeChannelSubscription> UserYoutubeChannelSubscriptions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserNotification> UserNotifications { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

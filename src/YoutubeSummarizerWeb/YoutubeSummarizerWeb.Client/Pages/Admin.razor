@@ -1,5 +1,6 @@
 @page "/admin"
 @inject AuthStateService AuthState
+@inject NotificationService NotificationService
 @inject NavigationManager Navigation
 
 <PageTitle>Admin - YoutubeSummarizer</PageTitle>
@@ -9,9 +10,50 @@
         <h1>Admin Panel</h1>
         <p class="page-subtitle">Manage the application.</p>
     </div>
+
+    <div class="subscribe-card">
+        <h2>Send Global Notification</h2>
+        <p class="card-subtitle">This will be sent to all active users.</p>
+
+        @if (!string.IsNullOrEmpty(notifError))
+        {
+            <div class="alert alert-error alert-dismissable">
+                <span>@notifError</span>
+                <button class="alert-close" @onclick="() => notifError = null">&times;</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(notifSuccess))
+        {
+            <div class="alert alert-success alert-dismissable">
+                <span>@notifSuccess</span>
+                <button class="alert-close" @onclick="() => notifSuccess = null">&times;</button>
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="notifTitle">Title</label>
+            <input id="notifTitle" type="text" class="form-input" @bind="notifTitle" placeholder="Notification title" maxlength="200" />
+        </div>
+
+        <div class="form-group">
+            <label for="notifContent">Content</label>
+            <textarea id="notifContent" class="form-input form-textarea" @bind="notifContent" placeholder="Notification content" maxlength="2000" rows="4"></textarea>
+        </div>
+
+        <button class="btn btn-primary" @onclick="HandleSendNotification" disabled="@isSending">
+            @(isSending ? "Sending..." : "Send Notification")
+        </button>
+    </div>
 </div>
 
 @code {
+    private string notifTitle = string.Empty;
+    private string notifContent = string.Empty;
+    private string? notifError;
+    private string? notifSuccess;
+    private bool isSending;
+
     protected override void OnInitialized()
     {
         if (!AuthState.IsLoggedIn)
@@ -25,5 +67,33 @@
             Navigation.NavigateTo("/?error=unauthorized");
             return;
         }
+    }
+
+    private async Task HandleSendNotification()
+    {
+        notifError = null;
+        notifSuccess = null;
+
+        if (string.IsNullOrWhiteSpace(notifTitle) || string.IsNullOrWhiteSpace(notifContent))
+        {
+            notifError = "Title and content are required.";
+            return;
+        }
+
+        isSending = true;
+        var result = await NotificationService.CreateGlobalNotificationAsync(notifTitle.Trim(), notifContent.Trim());
+
+        if (result.Success)
+        {
+            notifSuccess = "Global notification sent to all users.";
+            notifTitle = string.Empty;
+            notifContent = string.Empty;
+        }
+        else
+        {
+            notifError = result.Error;
+        }
+
+        isSending = false;
     }
 }

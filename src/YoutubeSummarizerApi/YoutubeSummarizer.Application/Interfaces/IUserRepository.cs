@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using YoutubeSummarizer.Domain.Models;
 
 namespace YoutubeSummarizer.Application.Interfaces
@@ -9,5 +6,6 @@ namespace YoutubeSummarizer.Application.Interfaces
     {
         Task<User?> GetByIdAsync(Guid id);
         Task CreateAsync(User user);
+        Task<List<Guid>> GetAllActiveUserIdsAsync(CancellationToken cancellationToken = default);
     }
 }

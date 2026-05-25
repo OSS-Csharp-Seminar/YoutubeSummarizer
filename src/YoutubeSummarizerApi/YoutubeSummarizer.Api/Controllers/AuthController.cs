@@ -110,7 +110,7 @@ namespace YoutubeSummarizer.Api.Controllers
                 HttpOnly = true,
                 Secure = isProduction,
                 SameSite = SameSiteMode.Lax,
-                Path = "/api",
+                Path = "/",
                 MaxAge = TimeSpan.FromMinutes(15)
             });
 
@@ -126,7 +126,7 @@ namespace YoutubeSummarizer.Api.Controllers
 
         private void ClearTokenCookies()
         {
-            Response.Cookies.Delete("access_token", new CookieOptions { Path = "/api" });
+            Response.Cookies.Delete("access_token", new CookieOptions { Path = "/" });
             Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/api/auth" });
         }
     }

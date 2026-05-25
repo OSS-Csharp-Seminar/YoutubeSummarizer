@@ -42,7 +42,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
 
                     channel = new YoutubeChannel
                     {
-                        Id = Guid.NewGuid(),
                         ChannelIdentifier = identifier,
                         ChannelUrl = request.ChannelUrl,
                         YoutubeChannelId = youtubeChannelId,
@@ -60,7 +59,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
 
                 await _subscriptionRepo.AddAsync(new UserYoutubeChannelSubscription
                 {
-                    Id = Guid.NewGuid(),
                     UserId = userId,
                     YoutubeChannelId = channel.Id,
                     SummarizationStyle = request.SummarizationStyle,
