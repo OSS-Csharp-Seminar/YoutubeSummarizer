@@ -81,7 +81,7 @@
                 {
                     <div class="subscription-item">
                         <div class="subscription-info">
-                            <span class="channel-name">@sub.ChannelIdentifier</span>
+                            <span class="channel-name">@(sub.ChannelIdentifier.StartsWith("@") ? sub.ChannelIdentifier : sub.ChannelUrl)</span>
                             <div class="custom-dropdown">
                                 <div class="custom-dropdown-trigger @(updatingStyleId == sub.SubscriptionId ? "disabled" : "")"
                                      @onclick="() => ToggleDropdown(sub.SubscriptionId)">

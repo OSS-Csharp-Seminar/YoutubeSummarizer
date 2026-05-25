@@ -1,6 +1,6 @@
 @page "/admin"
 @inject AuthStateService AuthState
-@inject NotificationService NotificationService
+@inject AdminService AdminService
 @inject NavigationManager Navigation
 
 <PageTitle>Admin - YoutubeSummarizer</PageTitle>
@@ -11,7 +11,7 @@
         <p class="page-subtitle">Manage the application.</p>
     </div>
 
-    <CollapsibleSection Title="Send Global Notification" Subtitle="This will be sent to all users." StartExpanded="true">
+    <CollapsibleSection Title="Send Global Notification" Subtitle="This will be sent to all users." StartExpanded="false">
         @if (!string.IsNullOrEmpty(notifError))
         {
             <div class="alert alert-error alert-dismissable">
@@ -42,6 +42,89 @@
             @(isSending ? "Sending..." : "Send Notification")
         </button>
     </CollapsibleSection>
+
+    <CollapsibleSection Title="User Management" Subtitle="View and manage all users." StartExpanded="false">
+        <div class="admin-toolbar">
+            <button class="btn btn-secondary" @onclick="HandleRefreshUsers" disabled="@isRefreshing">
+                @(isRefreshing ? "Refreshing..." : "Refresh")
+            </button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(usersError))
+        {
+            <div class="alert alert-error">@usersError</div>
+        }
+
+        @if (isLoadingUsers)
+        {
+            <p class="text-muted">Loading users...</p>
+        }
+        else if (users.Count == 0)
+        {
+            <p class="text-muted">No users found.</p>
+        }
+        else
+        {
+            <div class="admin-user-list">
+                @foreach (var user in users)
+                {
+                    <div class="admin-user-card">
+                        <button class="admin-user-header" @onclick="() => ToggleUser(user.Id)">
+                            <div class="admin-user-info">
+                                <span class="admin-user-name">@user.FirstName @user.LastName</span>
+                                <span class="admin-user-email">@user.Email</span>
+                            </div>
+                            <div class="admin-user-actions">
+                                <button class="btn btn-sm @(IsUserBanned(user.Id) ? "btn-success" : "btn-danger")" @onclick:stopPropagation="true" @onclick="() => ToggleBan(user.Id)">
+                                    @(IsUserBanned(user.Id) ? "Unban" : "Ban")
+                                </button>
+                                <button class="btn btn-sm btn-warning" @onclick:stopPropagation="true" @onclick="() => HandleLogout(user)">
+                                    Log Out
+                                </button>
+                                <span class="collapsible-chevron @(expandedUserIds.Contains(user.Id) ? "expanded" : "")">&#9660;</span>
+                            </div>
+                        </button>
+
+                        @if (expandedUserIds.Contains(user.Id))
+                        {
+                            <div class="admin-user-body">
+                                @if (user.Subscriptions.Count == 0)
+                                {
+                                    <p class="text-muted">No subscriptions.</p>
+                                }
+                                else
+                                {
+                                    <table class="admin-sub-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Channel</th>
+                                                <th>Style</th>
+                                                <th></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var sub in user.Subscriptions)
+                                            {
+                                                <tr>
+                                                    <td>@sub.ChannelIdentifier</td>
+                                                    <td>@sub.SummarizationStyle</td>
+                                                    <td>
+                                                        <button class="btn-icon btn-icon-danger" @onclick="() => HandleCancelSubscription(user, sub)" title="Cancel subscription">
+                                                            &times;
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </CollapsibleSection>
 </div>
 
 @code {
@@ -50,8 +133,15 @@
     private string? notifError;
     private string? notifSuccess;
     private bool isSending;
+    private bool isRefreshing;
+    private bool isLoadingUsers;
+    private string? usersError;
 
-    protected override void OnInitialized()
+    private List<AdminUserModel> users = new();
+    private HashSet<Guid> expandedUserIds = new();
+    private HashSet<Guid> bannedUserIds = new();
+
+    protected override async Task OnInitializedAsync()
     {
         if (!AuthState.IsLoggedIn)
         {
@@ -64,6 +154,57 @@
             Navigation.NavigateTo("/?error=unauthorized");
             return;
         }
+
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        isLoadingUsers = true;
+        usersError = null;
+
+        var result = await AdminService.GetAllUsersAsync();
+        if (result.Success)
+        {
+            users = result.Users;
+            bannedUserIds = users.Where(u => !u.IsActive).Select(u => u.Id).ToHashSet();
+        }
+        else
+        {
+            usersError = result.Error;
+        }
+
+        isLoadingUsers = false;
+    }
+
+    private async Task HandleRefreshUsers()
+    {
+        isRefreshing = true;
+        expandedUserIds.Clear();
+        await LoadUsers();
+        isRefreshing = false;
+    }
+
+    private void ToggleUser(Guid userId)
+    {
+        if (!expandedUserIds.Remove(userId))
+            expandedUserIds.Add(userId);
+    }
+
+    private bool IsUserBanned(Guid userId) => bannedUserIds.Contains(userId);
+
+    private void ToggleBan(Guid userId)
+    {
+        if (!bannedUserIds.Remove(userId))
+            bannedUserIds.Add(userId);
+    }
+
+    private void HandleLogout(AdminUserModel user)
+    {
+    }
+
+    private void HandleCancelSubscription(AdminUserModel user, AdminUserSubscriptionModel sub)
+    {
     }
 
     private async Task HandleSendNotification()
@@ -78,7 +219,7 @@
         }
 
         isSending = true;
-        var result = await NotificationService.CreateGlobalNotificationAsync(notifTitle.Trim(), notifContent.Trim());
+        var result = await AdminService.CreateGlobalNotificationAsync(notifTitle.Trim(), notifContent.Trim());
 
         if (result.Success)
         {

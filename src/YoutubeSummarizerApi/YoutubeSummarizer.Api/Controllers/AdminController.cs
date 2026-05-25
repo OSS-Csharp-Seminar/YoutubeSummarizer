@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using YoutubeSummarizer.Application.Features.Notifications.Dtos;
-using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
+using YoutubeSummarizer.Application.Features.Admin.Dtos;
+using YoutubeSummarizer.Application.Features.Admin.Interfaces;
 
 namespace YoutubeSummarizer.Api.Controllers
 {
@@ -11,11 +11,11 @@ namespace YoutubeSummarizer.Api.Controllers
     [Authorize(Roles = "Admin")]
     public class AdminController : ControllerBase
     {
-        private readonly INotificationService _notificationService;
+        private readonly IAdminService _adminService;
 
-        public AdminController(INotificationService notificationService)
+        public AdminController(IAdminService adminService)
         {
-            _notificationService = notificationService;
+            _adminService = adminService;
         }
 
         [HttpPost("notifications/global")]
@@ -24,7 +24,17 @@ namespace YoutubeSummarizer.Api.Controllers
             CancellationToken cancellationToken)
         {
             var senderName = User.FindFirstValue("FirstName") ?? "Admin";
-            var result = await _notificationService.CreateGlobalNotificationAsync(request, senderName, cancellationToken);
+            var result = await _adminService.SendGlobalNotificationAsync(
+                request.Title, request.Content, senderName, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpGet("users")]
+        public async Task<IActionResult> GetAllUsers(CancellationToken cancellationToken)
+        {
+            var result = await _adminService.GetAllUsersAsync(cancellationToken);
             if (!result.Status)
                 return BadRequest(result);
             return Ok(result);

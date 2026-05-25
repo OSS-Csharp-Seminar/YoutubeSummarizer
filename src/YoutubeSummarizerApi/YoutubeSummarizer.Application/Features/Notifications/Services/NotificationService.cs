@@ -2,7 +2,6 @@ using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Notifications.Dtos;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
-using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Enums;
 using YoutubeSummarizer.Domain.Models;
 
@@ -12,18 +11,15 @@ namespace YoutubeSummarizer.Application.Features.Notifications.Services
     {
         private readonly INotificationRepository _notificationRepo;
         private readonly ICurrentUserService _currentUserService;
-        private readonly IUserRepository _userRepo;
         private readonly INotificationHubService _hubService;
 
         public NotificationService(
             INotificationRepository notificationRepo,
             ICurrentUserService currentUserService,
-            IUserRepository userRepo,
             INotificationHubService hubService)
         {
             _notificationRepo = notificationRepo;
             _currentUserService = currentUserService;
-            _userRepo = userRepo;
             _hubService = hubService;
         }
 
@@ -120,32 +116,6 @@ namespace YoutubeSummarizer.Application.Features.Notifications.Services
                 userNotification.IsDismissed = true;
                 await _notificationRepo.UpdateUserNotificationAsync(userNotification, cancellationToken);
                 return ServiceResponse<bool>.Success(true, "Notification dismissed.");
-            }
-            catch
-            {
-                return ServiceResponse<bool>.Failure("An error occurred.");
-            }
-        }
-
-        public async Task<ServiceResponse<bool>> CreateGlobalNotificationAsync(
-            CreateGlobalNotificationRequest request, string senderName, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userIds = await _userRepo.GetAllActiveUserIdsAsync(cancellationToken);
-
-                var notification = new Notification
-                {
-                    Type = NotificationType.Global,
-                    Title = request.Title,
-                    Content = request.Content,
-                    SenderName = senderName,
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-
-                await _notificationRepo.AddNotificationAsync(notification, userIds, cancellationToken);
-                await _hubService.NotifyUsersAsync(userIds, cancellationToken);
-                return ServiceResponse<bool>.Success(true, "Global notification sent.");
             }
             catch
             {

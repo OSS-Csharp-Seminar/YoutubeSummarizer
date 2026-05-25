@@ -1,4 +1,4 @@
-namespace YoutubeSummarizer.Application.Features.Notifications.Dtos
+namespace YoutubeSummarizer.Application.Features.Admin.Dtos
 {
     public class CreateGlobalNotificationRequest
     {

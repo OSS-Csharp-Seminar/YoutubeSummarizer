@@ -7,6 +7,8 @@ using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Services;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Services;
+using YoutubeSummarizer.Application.Features.Admin.Interfaces;
+using YoutubeSummarizer.Application.Features.Admin.Services;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.Notifications.Services;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
@@ -32,6 +34,7 @@ namespace YoutubeSummarizer.Application.DependencyInjection
             services.AddScoped<IYoutubeWebhookVerificationService, YoutubeWebhookVerificationService>();
             services.AddScoped<IYoutubeWebhookNotificationService, YoutubeWebhookNotificationService>();
             services.AddScoped<INotificationService, NotificationService>();
+            services.AddScoped<IAdminService, AdminService>();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestDtoValidator>();
 
             return services;

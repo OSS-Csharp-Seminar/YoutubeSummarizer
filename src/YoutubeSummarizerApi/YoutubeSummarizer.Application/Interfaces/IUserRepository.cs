@@ -7,5 +7,6 @@ namespace YoutubeSummarizer.Application.Interfaces
         Task<User?> GetByIdAsync(Guid id);
         Task CreateAsync(User user);
         Task<List<Guid>> GetAllActiveUserIdsAsync(CancellationToken cancellationToken = default);
+        Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default);
     }
 }

@@ -32,8 +32,3 @@ public class NotificationsResult
     public GetNotificationsResponse? Data { get; set; }
 }
 
-public class GlobalNotificationResult
-{
-    public bool Success { get; set; }
-    public string? Error { get; set; }
-}

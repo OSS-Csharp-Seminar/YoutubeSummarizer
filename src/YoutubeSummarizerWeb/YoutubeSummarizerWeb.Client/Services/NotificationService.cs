@@ -70,17 +70,4 @@ public class NotificationService
         return result?.Status == true;
     }
 
-    public async Task<GlobalNotificationResult> CreateGlobalNotificationAsync(string title, string content)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/notifications/global");
-        request.Content = JsonContent.Create(new { Title = title, Content = content });
-
-        var response = await _httpClient.SendAsync(request);
-        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
-        if (result == null || !result.Status)
-            return new GlobalNotificationResult { Success = false, Error = result?.Message ?? "Failed to send notification." };
-        OnUnreadCountChanged?.Invoke();
-        return new GlobalNotificationResult { Success = true };
-    }
-
 }

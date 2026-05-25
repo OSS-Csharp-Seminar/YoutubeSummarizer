@@ -1,7 +1,7 @@
 using FluentValidation;
-using YoutubeSummarizer.Application.Features.Notifications.Dtos;
+using YoutubeSummarizer.Application.Features.Admin.Dtos;
 
-namespace YoutubeSummarizer.Application.Features.Notifications.Validators
+namespace YoutubeSummarizer.Application.Features.Admin.Validators
 {
     public class CreateGlobalNotificationRequestValidator : AbstractValidator<CreateGlobalNotificationRequest>
     {
