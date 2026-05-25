@@ -1,0 +1,162 @@
+@page "/account"
+@inject BlacklistService BlacklistService
+@inject AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>My Account - YoutubeSummarizer</PageTitle>
+
+<div class="subscriptions-page">
+    <div class="subscriptions-header">
+        <h1>My Account</h1>
+        <p class="page-subtitle">Manage your account settings.</p>
+    </div>
+
+    <div class="subscribe-card">
+        <h2>Keyword Blacklist</h2>
+        <p class="card-subtitle">
+            Videos matching any of these keywords will be marked as filtered in your notifications.
+            Keywords are checked against the video title and transcript. You can add up to 50 keywords.
+        </p>
+
+        @if (!string.IsNullOrEmpty(addError))
+        {
+            <div class="alert alert-error alert-dismissable">
+                <span>@addError</span>
+                <button class="alert-close" @onclick="() => addError = null">&times;</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(addSuccess))
+        {
+            <div class="alert alert-success alert-dismissable">
+                <span>@addSuccess</span>
+                <button class="alert-close" @onclick="() => addSuccess = null">&times;</button>
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="keyword">Add keyword</label>
+            <div style="display: flex; gap: 0.5rem;">
+                <input id="keyword"
+                       class="form-input"
+                       placeholder="e.g. crypto"
+                       @bind="newKeyword"
+                       @bind:event="oninput"
+                       @onkeydown="HandleKeyDown" />
+                <button class="btn btn-primary"
+                        disabled="@(isAdding || string.IsNullOrWhiteSpace(newKeyword))"
+                        @onclick="HandleAdd">
+                    @(isAdding ? "Adding..." : "Add")
+                </button>
+            </div>
+        </div>
+
+        @if (isLoadingKeywords)
+        {
+            <p>Loading keywords...</p>
+        }
+        else if (keywords.Count == 0)
+        {
+            <p class="no-subscriptions">Your blacklist is empty. Add a keyword above to get started.</p>
+        }
+        else
+        {
+            <div class="subscriptions-list" style="margin-top: 1rem;">
+                @foreach (var kw in keywords)
+                {
+                    var kwRef = kw;
+                    <div class="subscription-item">
+                        <span class="channel-name">@kw.Keyword</span>
+                        <button class="btn btn-danger"
+                                disabled="@(removingId == kw.Id)"
+                                @onclick="() => HandleRemove(kwRef)">
+                            @(removingId == kw.Id ? "Removing..." : "Remove")
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(removeError))
+        {
+            <div class="alert alert-error alert-dismissable" style="margin-top: 1rem;">
+                <span>@removeError</span>
+                <button class="alert-close" @onclick="() => removeError = null">&times;</button>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<BlacklistedKeyword> keywords = new();
+    private string newKeyword = string.Empty;
+    private bool isLoadingKeywords;
+    private bool isAdding;
+    private Guid? removingId;
+    private string? addError;
+    private string? addSuccess;
+    private string? removeError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!AuthState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadKeywords();
+    }
+
+    private async Task LoadKeywords()
+    {
+        isLoadingKeywords = true;
+        keywords = await BlacklistService.GetKeywordsAsync();
+        isLoadingKeywords = false;
+    }
+
+    private async Task HandleAdd()
+    {
+        if (string.IsNullOrWhiteSpace(newKeyword)) return;
+
+        isAdding = true;
+        addError = null;
+        addSuccess = null;
+
+        var result = await BlacklistService.AddKeywordAsync(newKeyword.Trim());
+
+        if (result.Success)
+        {
+            addSuccess = $"\"{result.Data!.Keyword}\" added to your blacklist.";
+            newKeyword = string.Empty;
+            await LoadKeywords();
+        }
+        else
+        {
+            addError = result.Error;
+        }
+
+        isAdding = false;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await HandleAdd();
+    }
+
+    private async Task HandleRemove(BlacklistedKeyword kw)
+    {
+        removingId = kw.Id;
+        removeError = null;
+
+        var result = await BlacklistService.RemoveKeywordAsync(kw.Id);
+
+        if (result.Success)
+            keywords.Remove(kw);
+        else
+            removeError = result.Error;
+
+        removingId = null;
+    }
+}

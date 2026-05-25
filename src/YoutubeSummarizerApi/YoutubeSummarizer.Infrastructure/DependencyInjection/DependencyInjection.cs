@@ -18,6 +18,7 @@ using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Persistence.Repositories;
 using YoutubeSummarizer.Infrastructure.Security;
+using YoutubeSummarizer.Application.Features.Blacklist.Interfaces;
 
 namespace YoutubeSummarizer.Infrastructure.DependencyInjection
 {
@@ -56,6 +57,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<IUserYoutubeChannelSubscriptionRepository, UserYoutubeChannelSubscriptionRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IYoutubeWebhookNotificationParser, YoutubeAtomXmlParser>();
+            services.AddScoped<IBlacklistRepository, BlacklistRepository>();
 
             services.AddHttpClient<IYoutubeTranscriptClient, YoutubeTranscriptClient>(client =>
             {

@@ -17,6 +17,8 @@ using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Application.Mappings;
 using YoutubeSummarizer.Application.Services;
 using YoutubeSummarizer.Application.Validators;
+using YoutubeSummarizer.Application.Features.Blacklist.Interfaces;
+using YoutubeSummarizer.Application.Features.Blacklist.Services;
 
 namespace YoutubeSummarizer.Application.DependencyInjection
 {
@@ -36,6 +38,7 @@ namespace YoutubeSummarizer.Application.DependencyInjection
             services.AddScoped<INotificationService, NotificationService>();
             services.AddScoped<IAdminService, AdminService>();
             services.AddValidatorsFromAssemblyContaining<RegisterRequestDtoValidator>();
+            services.AddScoped<IBlacklistService, BlacklistService>();
 
             return services;
         }

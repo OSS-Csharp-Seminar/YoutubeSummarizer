@@ -16,7 +16,8 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.DbContext
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<UserNotification> UserNotifications { get; set; }
-
+        public DbSet<BlacklistedKeyword> BlacklistedKeywords { get; set; }
+        
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
