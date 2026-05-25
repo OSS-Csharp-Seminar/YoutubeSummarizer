@@ -39,5 +39,32 @@ namespace YoutubeSummarizer.Api.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        [HttpPost("users/{id}/toggle-ban")]
+        public async Task<IActionResult> ToggleBan(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _adminService.ToggleBanAsync(id, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpPost("users/{id}/logout")]
+        public async Task<IActionResult> LogOutUser(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _adminService.LogOutUserAsync(id, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("subscriptions/{id}")]
+        public async Task<IActionResult> CancelSubscription(Guid id, CancellationToken cancellationToken)
+        {
+            var result = await _adminService.CancelSubscriptionAsync(id, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

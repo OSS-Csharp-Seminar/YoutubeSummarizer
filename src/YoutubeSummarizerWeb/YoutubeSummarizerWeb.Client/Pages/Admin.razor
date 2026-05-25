@@ -52,7 +52,18 @@
 
         @if (!string.IsNullOrEmpty(usersError))
         {
-            <div class="alert alert-error">@usersError</div>
+            <div class="alert alert-error alert-dismissable">
+                <span>@usersError</span>
+                <button class="alert-close" @onclick="() => usersError = null">&times;</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(usersSuccess))
+        {
+            <div class="alert alert-success alert-dismissable">
+                <span>@usersSuccess</span>
+                <button class="alert-close" @onclick="() => usersSuccess = null">&times;</button>
+            </div>
         }
 
         @if (isLoadingUsers)
@@ -136,6 +147,7 @@
     private bool isRefreshing;
     private bool isLoadingUsers;
     private string? usersError;
+    private string? usersSuccess;
 
     private List<AdminUserModel> users = new();
     private HashSet<Guid> expandedUserIds = new();
@@ -180,6 +192,7 @@
     private async Task HandleRefreshUsers()
     {
         isRefreshing = true;
+        ClearUserAlerts();
         expandedUserIds.Clear();
         await LoadUsers();
         isRefreshing = false;
@@ -193,18 +206,54 @@
 
     private bool IsUserBanned(Guid userId) => bannedUserIds.Contains(userId);
 
-    private void ToggleBan(Guid userId)
+    private void ClearUserAlerts()
     {
-        if (!bannedUserIds.Remove(userId))
-            bannedUserIds.Add(userId);
+        usersError = null;
+        usersSuccess = null;
     }
 
-    private void HandleLogout(AdminUserModel user)
+    private async Task ToggleBan(Guid userId)
     {
+        ClearUserAlerts();
+        var result = await AdminService.ToggleBanAsync(userId);
+        if (result.Success)
+        {
+            var wasBanned = bannedUserIds.Contains(userId);
+            if (!bannedUserIds.Remove(userId))
+                bannedUserIds.Add(userId);
+            var user = users.FirstOrDefault(u => u.Id == userId);
+            var name = user is not null ? $"{user.FirstName} {user.LastName}" : "User";
+            usersSuccess = wasBanned ? $"{name} has been unbanned." : $"{name} has been banned.";
+        }
+        else
+        {
+            usersError = result.Error;
+        }
     }
 
-    private void HandleCancelSubscription(AdminUserModel user, AdminUserSubscriptionModel sub)
+    private async Task HandleLogout(AdminUserModel user)
     {
+        ClearUserAlerts();
+        var result = await AdminService.LogOutUserAsync(user.Id);
+        if (result.Success)
+            usersSuccess = $"{user.FirstName} {user.LastName} has been logged out.";
+        else
+            usersError = result.Error;
+    }
+
+    private async Task HandleCancelSubscription(AdminUserModel user, AdminUserSubscriptionModel sub)
+    {
+        ClearUserAlerts();
+        var result = await AdminService.CancelSubscriptionAsync(sub.SubscriptionId);
+        if (result.Success)
+        {
+            user.Subscriptions.Remove(sub);
+            usersSuccess = $"Subscription to {sub.ChannelIdentifier} cancelled for {user.FirstName} {user.LastName}.";
+        }
+        else
+        {
+            usersError = result.Error;
+        }
     }
 
     private async Task HandleSendNotification()

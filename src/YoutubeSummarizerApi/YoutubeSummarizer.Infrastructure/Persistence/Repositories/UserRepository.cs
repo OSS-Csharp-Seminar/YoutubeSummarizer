@@ -36,6 +36,12 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             => await _db.DomainUsers
                 .OrderBy(u => u.Email)
                 .ToListAsync(cancellationToken);
+
+        public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
+        {
+            _db.DomainUsers.Update(user);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
 }
 

@@ -33,7 +33,7 @@ public class AuthRetryHandler : DelegatingHandler
         if (!refreshResponse.IsSuccessStatusCode)
         {
             _authState.ClearUser();
-            _navigation.NavigateTo("/login");
+            _navigation.NavigateTo("/login", forceLoad: true);
             return response;
         }
 

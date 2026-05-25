@@ -31,5 +31,12 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             _db.RefreshTokens.Update(token);
             await _db.SaveChangesAsync(cancellationToken);
         }
+
+        public async Task RevokeAllByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            await _db.RefreshTokens
+                .Where(t => t.UserId == userId && t.RevokedAtUtc == null && t.ExpiresAtUtc > DateTime.UtcNow)
+                .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAtUtc, DateTime.UtcNow), cancellationToken);
+        }
     }
 }

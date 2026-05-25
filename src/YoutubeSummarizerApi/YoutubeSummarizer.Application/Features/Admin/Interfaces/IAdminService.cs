@@ -7,5 +7,8 @@ namespace YoutubeSummarizer.Application.Features.Admin.Interfaces
     {
         Task<ServiceResponse<List<AdminUserDto>>> GetAllUsersAsync(CancellationToken cancellationToken = default);
         Task<ServiceResponse<bool>> SendGlobalNotificationAsync(string title, string content, string senderName, CancellationToken cancellationToken = default);
+        Task<ServiceResponse<bool>> ToggleBanAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task<ServiceResponse<bool>> LogOutUserAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task<ServiceResponse<bool>> CancelSubscriptionAsync(Guid subscriptionId, CancellationToken cancellationToken = default);
     }
 }

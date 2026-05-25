@@ -11,5 +11,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces
         Task<List<YoutubeChannel>> GetExpiringWebhookSubscriptionsAsync(DateTime thresholdUtc, CancellationToken cancellationToken = default);
         Task AddAsync(YoutubeChannel channel, CancellationToken cancellationToken = default);
         Task UpdateAsync(YoutubeChannel channel, CancellationToken cancellationToken = default);
+        Task DeleteAsync(YoutubeChannel channel, CancellationToken cancellationToken = default);
     }
 }

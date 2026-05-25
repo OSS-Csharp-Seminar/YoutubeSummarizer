@@ -136,9 +136,11 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                 if (remaining.Count == 0)
                 {
                     var channel = await _channelRepo.GetByIdAsync(channelId, cancellationToken);
-                    if (channel is not null && channel.IsWebhookSubscribed)
+                    if (channel is not null)
                     {
-                        await _webhookSubscriptionService.UnsubscribeAsync(channelId, cancellationToken);
+                        if (channel.IsWebhookSubscribed)
+                            await _webhookSubscriptionService.UnsubscribeAsync(channelId, cancellationToken);
+                        await _channelRepo.DeleteAsync(channel, cancellationToken);
                     }
                 }
 

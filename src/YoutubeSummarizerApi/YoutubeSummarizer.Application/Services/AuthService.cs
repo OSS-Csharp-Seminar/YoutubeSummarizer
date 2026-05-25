@@ -112,7 +112,7 @@ namespace YoutubeSummarizer.Application.Services
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var user = await _userRepo.GetByIdAsync(userId);
-                if (user == null)
+                if (user == null || !user.IsActive)
                     return ServiceResponse<RefreshTokenResponseDto>.Failure("Invalid refresh token.");
 
                 var roles = await _authRepo.GetRolesAsync(user.Email);

@@ -42,5 +42,11 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             _db.YoutubeChannels.Update(channel);
             await _db.SaveChangesAsync(cancellationToken);
         }
+
+        public async Task DeleteAsync(YoutubeChannel channel, CancellationToken cancellationToken = default)
+        {
+            _db.YoutubeChannels.Remove(channel);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
     }
 }

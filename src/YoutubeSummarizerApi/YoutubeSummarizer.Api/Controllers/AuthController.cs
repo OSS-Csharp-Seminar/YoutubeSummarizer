@@ -111,7 +111,7 @@ namespace YoutubeSummarizer.Api.Controllers
                 Secure = isProduction,
                 SameSite = SameSiteMode.Lax,
                 Path = "/",
-                MaxAge = TimeSpan.FromMinutes(15)
+                MaxAge = TimeSpan.FromDays(30)
             });
 
             Response.Cookies.Append("refresh_token", refreshToken, new CookieOptions

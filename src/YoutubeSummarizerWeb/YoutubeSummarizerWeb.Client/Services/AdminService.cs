@@ -50,6 +50,57 @@ public class AdminService
             return new AdminActionResult { Error = "Failed to send notification." };
         }
     }
+
+    public async Task<AdminActionResult> ToggleBanAsync(Guid userId)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync($"/api/admin/users/{userId}/toggle-ban", null);
+            var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+            if (result == null || !result.Status)
+                return new AdminActionResult { Error = result?.Message ?? "Failed to update ban status." };
+
+            return new AdminActionResult { Message = result.Message };
+        }
+        catch
+        {
+            return new AdminActionResult { Error = "Failed to update ban status." };
+        }
+    }
+
+    public async Task<AdminActionResult> LogOutUserAsync(Guid userId)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsync($"/api/admin/users/{userId}/logout", null);
+            var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+            if (result == null || !result.Status)
+                return new AdminActionResult { Error = result?.Message ?? "Failed to log out user." };
+
+            return new AdminActionResult { Message = result.Message };
+        }
+        catch
+        {
+            return new AdminActionResult { Error = "Failed to log out user." };
+        }
+    }
+
+    public async Task<AdminActionResult> CancelSubscriptionAsync(Guid subscriptionId)
+    {
+        try
+        {
+            var response = await _httpClient.DeleteAsync($"/api/admin/subscriptions/{subscriptionId}");
+            var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+            if (result == null || !result.Status)
+                return new AdminActionResult { Error = result?.Message ?? "Failed to cancel subscription." };
+
+            return new AdminActionResult { Message = result.Message };
+        }
+        catch
+        {
+            return new AdminActionResult { Error = "Failed to cancel subscription." };
+        }
+    }
 }
 
 public class AdminUsersResult
@@ -62,6 +113,7 @@ public class AdminUsersResult
 public class AdminActionResult
 {
     public string? Error { get; set; }
+    public string? Message { get; set; }
     public bool Success => Error is null;
 }
 
