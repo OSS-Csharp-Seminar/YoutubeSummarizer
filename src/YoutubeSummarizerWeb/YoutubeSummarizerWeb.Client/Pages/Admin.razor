@@ -11,10 +11,7 @@
         <p class="page-subtitle">Manage the application.</p>
     </div>
 
-    <div class="subscribe-card">
-        <h2>Send Global Notification</h2>
-        <p class="card-subtitle">This will be sent to all active users.</p>
-
+    <CollapsibleSection Title="Send Global Notification" Subtitle="This will be sent to all users." StartExpanded="true">
         @if (!string.IsNullOrEmpty(notifError))
         {
             <div class="alert alert-error alert-dismissable">
@@ -44,7 +41,7 @@
         <button class="btn btn-primary" @onclick="HandleSendNotification" disabled="@isSending">
             @(isSending ? "Sending..." : "Send Notification")
         </button>
-    </div>
+    </CollapsibleSection>
 </div>
 
 @code {

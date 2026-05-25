@@ -1,0 +1,40 @@
+@namespace YoutubeSummarizerWeb.Client.Components
+
+<div class="collapsible-section">
+    <button class="collapsible-header" @onclick="Toggle">
+        <div class="collapsible-title-group">
+            <h2>@Title</h2>
+            @if (!string.IsNullOrEmpty(Subtitle))
+            {
+                <p class="card-subtitle">@Subtitle</p>
+            }
+        </div>
+        <span class="collapsible-chevron @(isExpanded ? "expanded" : "")">&#9660;</span>
+    </button>
+
+    @if (isExpanded)
+    {
+        <div class="collapsible-body">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool StartExpanded { get; set; }
+
+    private bool isExpanded;
+
+    protected override void OnInitialized()
+    {
+        isExpanded = StartExpanded;
+    }
+
+    private void Toggle()
+    {
+        isExpanded = !isExpanded;
+    }
+}
