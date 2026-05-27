@@ -19,7 +19,6 @@ using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Persistence.Repositories;
 using YoutubeSummarizer.Infrastructure.Security;
-using YoutubeSummarizer.Application.Features.Admin.Interfaces;
 using YoutubeSummarizer.Application.Features.UserAccount.Interfaces;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeMetadata;
 using YoutubeSummarizer.Infrastructure.Hubs;
@@ -75,6 +74,8 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             {
                 client.BaseAddress = new Uri("https://pubsubhubbub.appspot.com/subscribe");
             });
+            services.AddSingleton<IWebhookPayloadQueue, WebhookPayloadQueue>();
+            services.AddHostedService<WebhookNotificationProcessor>();
             services.AddHostedService<YoutubeWebhookRenewalBackgroundService>();
             services.AddHostedService<NgrokTunnelInitializer>();
             services.AddHttpClient<IYoutubeMetadataClient, YoutubeMetadataClient>();

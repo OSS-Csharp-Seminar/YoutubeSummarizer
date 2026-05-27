@@ -1,5 +1,5 @@
 using System.Text;
-using YoutubeSummarizer.Application.Features.Admin.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 
 namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
 {

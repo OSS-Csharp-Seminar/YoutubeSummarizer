@@ -1,4 +1,4 @@
-namespace YoutubeSummarizer.Application.Features.Admin.Dtos
+namespace YoutubeSummarizer.Application.Common.Models
 {
     public class YoutubeChannelMetadata
     {

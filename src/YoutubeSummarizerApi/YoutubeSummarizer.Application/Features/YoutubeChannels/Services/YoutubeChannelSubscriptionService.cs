@@ -1,6 +1,5 @@
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
-using YoutubeSummarizer.Application.Features.Admin.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.SubscribeToYoutubeChannel;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;

@@ -1,8 +1,8 @@
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-using YoutubeSummarizer.Application.Features.Admin.Dtos;
-using YoutubeSummarizer.Application.Features.Admin.Interfaces;
+using YoutubeSummarizer.Application.Common.Interfaces;
+using YoutubeSummarizer.Application.Common.Models;
 
 namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeMetadata
 {

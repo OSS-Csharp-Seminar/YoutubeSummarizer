@@ -22,6 +22,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
         private readonly IAiClient _aiClient;
         private readonly ITranscriptPromptTemplateProvider _promptTemplateProvider;
         private readonly INotificationService _notificationService;
+        private readonly IYoutubeMetadataClient _metadataClient;
         private readonly ILogger<YoutubeWebhookNotificationService> _logger;
 
         public YoutubeWebhookNotificationService(
@@ -33,6 +34,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             IAiClient aiClient,
             ITranscriptPromptTemplateProvider promptTemplateProvider,
             INotificationService notificationService,
+            IYoutubeMetadataClient metadataClient,
             ILogger<YoutubeWebhookNotificationService> logger)
         {
             _channelRepo = channelRepo;
@@ -43,6 +45,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             _aiClient = aiClient;
             _promptTemplateProvider = promptTemplateProvider;
             _notificationService = notificationService;
+            _metadataClient = metadataClient;
             _logger = logger;
         }
 
@@ -52,9 +55,21 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
 
             var notification = _notificationParser.Parse(payload);
 
+            var videoUrl = $"https://www.youtube.com/watch?v={notification.VideoId}";
+            var videoTitle = notification.VideoTitle;
+            try
+            {
+                var metadata = await _metadataClient.GetVideoMetadataAsync(videoUrl, cancellationToken);
+                videoTitle = metadata.Title;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to resolve fresh video title for {VideoId}, using XML title.", notification.VideoId);
+            }
+
             _logger.LogInformation(
                 "Parsed webhook: \"{VideoTitle}\" by {ChannelName} | Video: {VideoId} | Channel: {ChannelId}",
-                notification.VideoTitle, notification.ChannelName, notification.VideoId, notification.ChannelId);
+                videoTitle, notification.ChannelName, notification.VideoId, notification.ChannelId);
 
             var channel = await _channelRepo.GetByYoutubeChannelIdAsync(notification.ChannelId, cancellationToken);
             if (channel is null)
@@ -70,7 +85,6 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                 return;
             }
 
-            var videoUrl = $"https://www.youtube.com/watch?v={notification.VideoId}";
             string? transcriptText = null;
 
             var transcriptRequest = new GetYoutubeTranscriptRequest { VideoUrl = videoUrl };
@@ -93,7 +107,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                         attempt, maxRetries, notification.VideoId);
 
                     if (attempt < maxRetries)
-                        await Task.Delay(2000 * attempt, cancellationToken);
+                        await Task.Delay(2000 * attempt);
                 }
             }
 
@@ -105,7 +119,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                 await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
                 {
                     Type = NotificationType.NewVideo,
-                    Title = notification.VideoTitle,
+                    Title = videoTitle,
                     Content = "A summary of this video is not available.",
                     SenderName = notification.ChannelName
                 }, allUserIds, cancellationToken);
@@ -203,14 +217,14 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                 await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
                 {
                     Type = NotificationType.NewVideo,
-                    Title = notification.VideoTitle,
+                    Title = videoTitle,
                     Content = summary,
                     SenderName = notification.ChannelName
                 }, userIds, cancellationToken);
 
                 _logger.LogInformation(
                     "Sent {Style} summary notification for \"{VideoTitle}\" to {UserCount} user(s).",
-                    style, notification.VideoTitle, userIds.Count);
+                    style, videoTitle, userIds.Count);
             }
         }
     }

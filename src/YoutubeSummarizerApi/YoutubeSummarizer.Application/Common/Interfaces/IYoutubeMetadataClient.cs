@@ -1,6 +1,6 @@
-using YoutubeSummarizer.Application.Features.Admin.Dtos;
+using YoutubeSummarizer.Application.Common.Models;
 
-namespace YoutubeSummarizer.Application.Features.Admin.Interfaces
+namespace YoutubeSummarizer.Application.Common.Interfaces
 {
     public interface IYoutubeMetadataClient
     {

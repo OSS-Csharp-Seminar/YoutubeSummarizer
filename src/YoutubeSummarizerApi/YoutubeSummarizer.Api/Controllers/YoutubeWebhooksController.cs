@@ -9,14 +9,14 @@ namespace YoutubeSummarizer.Api.Controllers
     public class YoutubeWebhooksController : ControllerBase
     {
         private readonly IYoutubeWebhookVerificationService _verificationService;
-        private readonly IYoutubeWebhookNotificationService _notificationService;
+        private readonly IWebhookPayloadQueue _payloadQueue;
 
         public YoutubeWebhooksController(
             IYoutubeWebhookVerificationService verificationService,
-            IYoutubeWebhookNotificationService notificationService)
+            IWebhookPayloadQueue payloadQueue)
         {
             _verificationService = verificationService;
-            _notificationService = notificationService;
+            _payloadQueue = payloadQueue;
         }
 
         [HttpGet]
@@ -40,7 +40,7 @@ namespace YoutubeSummarizer.Api.Controllers
         {
             using var reader = new StreamReader(Request.Body);
             var xml = await reader.ReadToEndAsync(cancellationToken);
-            await _notificationService.ProcessNotificationAsync(xml, cancellationToken);
+            await _payloadQueue.EnqueueAsync(xml, cancellationToken);
             return Ok();
         }
     }

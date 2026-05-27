@@ -1,4 +1,4 @@
-namespace YoutubeSummarizer.Application.Features.Admin.Interfaces
+namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces
 {
     public interface IMockWebhookSender
     {

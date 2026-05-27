@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Admin.Dtos;
 using YoutubeSummarizer.Application.Features.Admin.Interfaces;
