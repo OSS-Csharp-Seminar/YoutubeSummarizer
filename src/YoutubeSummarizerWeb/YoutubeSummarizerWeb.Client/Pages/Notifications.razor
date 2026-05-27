@@ -5,7 +5,7 @@
 @inject NavigationManager Navigation
 @implements IDisposable
 
-<PageTitle>Notifications - YoutubeSummarizer</PageTitle>
+<PageTitle>YoutubeSummarizer - Notifications</PageTitle>
 
 <div class="subscriptions-page">
     <div class="subscriptions-header">
@@ -15,6 +15,12 @@
             {
                 <button class="btn btn-secondary btn-sm" @onclick="HandleMarkAllAsRead" disabled="@markingAllRead">
                     @(markingAllRead ? "Marking..." : "Mark all as read")
+                </button>
+            }
+            @if (notifications.Count > 0)
+            {
+                <button class="btn btn-secondary btn-sm" @onclick="HandleDismissAll" disabled="@dismissingAll">
+                    @(dismissingAll ? "Dismissing..." : "Dismiss all")
                 </button>
             }
         </div>
@@ -159,6 +165,7 @@
     private string? errorMessage;
     private int unreadCount;
     private bool markingAllRead;
+    private bool dismissingAll;
     private Guid? actionId;
     private HashSet<Guid> expandedIds = new();
     private int[] pageSizeOptions = { 5, 10, 25, 50 };
@@ -301,6 +308,19 @@
             unreadCount = 0;
         }
         markingAllRead = false;
+    }
+
+    private async Task HandleDismissAll()
+    {
+        dismissingAll = true;
+        var ok = await NotificationService.DismissAllAsync();
+        if (ok)
+        {
+            notifications.Clear();
+            totalCount = 0;
+            unreadCount = 0;
+        }
+        dismissingAll = false;
     }
 
     private static string FormatType(NotificationType type) => type switch

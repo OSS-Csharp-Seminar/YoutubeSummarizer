@@ -37,7 +37,7 @@ namespace YoutubeSummarizerWeb.Client.DependencyInjection
                     sp.GetRequiredService<IHttpClientFactory>().CreateClient("Api")));
 
             services.AddScoped(sp =>
-                new BlacklistService(
+                new UserAccountService(
                     sp.GetRequiredService<IHttpClientFactory>().CreateClient("Api")));
 
             services.AddScoped<NotificationHubConnection>();

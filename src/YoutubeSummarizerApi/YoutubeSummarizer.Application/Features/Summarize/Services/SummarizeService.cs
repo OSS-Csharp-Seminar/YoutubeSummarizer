@@ -39,7 +39,15 @@ namespace YoutubeSummarizer.Application.Features.Summarize.Services
 
                 var prompt = PromptBuilder.Build(_aiSettings.BasePrompt, request.AdditionalInstructions, transcriptText);
 
-                var content = await _aiClient.CompleteAsync(prompt, cancellationToken);
+                string content;
+                try
+                {
+                    content = await _aiClient.CompletePrimaryAsync(prompt, cancellationToken);
+                }
+                catch
+                {
+                    content = await _aiClient.CompleteFallbackAsync(prompt, cancellationToken);
+                }
 
                 return ServiceResponse<SummarizeResponse>.Success(
                     new SummarizeResponse { Content = content },

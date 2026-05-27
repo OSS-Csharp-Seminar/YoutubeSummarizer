@@ -22,6 +22,11 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
 
             builder.HasIndex(x => x.UserId);
 
+            builder.HasOne(x => x.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             builder.Property(x => x.CreatedByIp).HasMaxLength(50);
             builder.Property(x => x.RevokedByIp).HasMaxLength(50);
             builder.Property(x => x.ReplacedByToken).HasMaxLength(200);

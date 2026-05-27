@@ -5,7 +5,7 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.SubscribeToYout
     public class SubscribeToYoutubeChannelResponse
     {
         public Guid YoutubeChannelId { get; set; }
-        public string ChannelIdentifier { get; set; } = string.Empty;
+        public string ChannelName { get; set; } = string.Empty;
         public string ChannelUrl { get; set; } = string.Empty;
         public TranscriptSummarizationStyle SummarizationStyle { get; set; }
     }

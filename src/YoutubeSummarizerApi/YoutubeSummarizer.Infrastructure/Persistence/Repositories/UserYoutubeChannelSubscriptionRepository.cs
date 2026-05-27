@@ -14,9 +14,9 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             _db = db;
         }
 
-        public Task<bool> ExistsAsync(Guid userId, Guid youtubeChannelId, CancellationToken cancellationToken = default)
+        public Task<bool> ExistsAsync(Guid userId, Guid channelId, CancellationToken cancellationToken = default)
             => _db.UserYoutubeChannelSubscriptions.AnyAsync(
-                x => x.UserId == userId && x.YoutubeChannelId == youtubeChannelId,
+                x => x.UserId == userId && x.ChannelId == channelId,
                 cancellationToken);
 
         public async Task AddAsync(UserYoutubeChannelSubscription subscription, CancellationToken cancellationToken = default)
@@ -25,16 +25,18 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public Task<List<UserYoutubeChannelSubscription>> GetByYoutubeChannelIdAsync(Guid youtubeChannelId, CancellationToken cancellationToken = default)
+        public Task<List<UserYoutubeChannelSubscription>> GetByYoutubeChannelIdAsync(Guid channelId, CancellationToken cancellationToken = default)
             => _db.UserYoutubeChannelSubscriptions
-                .Where(x => x.YoutubeChannelId == youtubeChannelId)
+                .Include(x => x.YoutubeChannel)
+                .Where(x => x.ChannelId == channelId)
                 .ToListAsync(cancellationToken);
 
         public Task<List<UserYoutubeChannelSubscription>> GetByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
             => _db.UserYoutubeChannelSubscriptions
+                .Include(x => x.YoutubeChannel)
                 .Where(x => x.UserId == userId)
                 .ToListAsync(cancellationToken);
-    
+
         public Task<UserYoutubeChannelSubscription?> GetByIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default)
             => _db.UserYoutubeChannelSubscriptions
                 .FirstOrDefaultAsync(x => x.Id == subscriptionId, cancellationToken);
@@ -51,5 +53,4 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             await _db.SaveChangesAsync(cancellationToken);
         }
     }
-
 }

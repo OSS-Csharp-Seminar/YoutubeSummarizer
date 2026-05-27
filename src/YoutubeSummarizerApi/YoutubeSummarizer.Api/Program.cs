@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using YoutubeSummarizer.Api.DependencyInjection;
+using YoutubeSummarizer.Api.Filters;
 using YoutubeSummarizer.Application.DependencyInjection;
 using YoutubeSummarizer.Infrastructure.DependencyInjection;
 using YoutubeSummarizer.Infrastructure.Security;
@@ -15,12 +15,12 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add(new AuthorizeFilter(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build()));
+    options.Filters.Add<ValidationFilter>();
 });
 builder.Services.AddOpenApi();
 builder.Services
     .AddApplication()
-    .AddInfrastructure(builder.Configuration)
-    .AddApi();
+    .AddInfrastructure(builder.Configuration);
 
 builder.Services.AddCors(options =>
 {
@@ -86,6 +86,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapHub<YoutubeSummarizer.Api.Hubs.NotificationHub>("/hubs/notifications");
+app.MapHub<YoutubeSummarizer.Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();

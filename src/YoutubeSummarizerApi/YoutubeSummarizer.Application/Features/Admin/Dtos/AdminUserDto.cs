@@ -13,7 +13,7 @@ namespace YoutubeSummarizer.Application.Features.Admin.Dtos
     public class AdminUserSubscriptionDto
     {
         public Guid SubscriptionId { get; set; }
-        public string ChannelIdentifier { get; set; } = string.Empty;
+        public string ChannelName { get; set; } = string.Empty;
         public string SummarizationStyle { get; set; } = string.Empty;
     }
 }

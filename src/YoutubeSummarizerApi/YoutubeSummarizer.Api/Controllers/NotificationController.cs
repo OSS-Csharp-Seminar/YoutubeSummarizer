@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using YoutubeSummarizer.Application.Features.Notifications.Dtos;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
-using YoutubeSummarizer.Domain.Enums;
 
 namespace YoutubeSummarizer.Api.Controllers
 {
@@ -19,15 +19,10 @@ namespace YoutubeSummarizer.Api.Controllers
 
         [HttpGet]
         public async Task<IActionResult> GetNotifications(
-            [FromQuery] NotificationType? type,
-            [FromQuery] string? senderSearch,
-            [FromQuery] bool sortDescending = true,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 10,
+            [FromQuery] GetNotificationsQuery query,
             CancellationToken cancellationToken = default)
         {
-            var result = await _notificationService.GetNotificationsAsync(
-                type, senderSearch, sortDescending, page, pageSize, cancellationToken);
+            var result = await _notificationService.GetNotificationsAsync(query, cancellationToken);
             if (!result.Status)
                 return BadRequest(result);
             return Ok(result);
@@ -64,6 +59,15 @@ namespace YoutubeSummarizer.Api.Controllers
         public async Task<IActionResult> Dismiss(Guid id, CancellationToken cancellationToken)
         {
             var result = await _notificationService.DismissAsync(id, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
+
+        [HttpDelete("dismiss-all")]
+        public async Task<IActionResult> DismissAll(CancellationToken cancellationToken)
+        {
+            var result = await _notificationService.DismissAllAsync(cancellationToken);
             if (!result.Status)
                 return BadRequest(result);
             return Ok(result);

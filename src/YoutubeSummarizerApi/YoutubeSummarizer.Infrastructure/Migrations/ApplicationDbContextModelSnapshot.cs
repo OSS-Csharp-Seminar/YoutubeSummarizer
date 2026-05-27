@@ -169,33 +169,18 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.BlacklistedKeyword", b =>
+            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.BlacklistEntry", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWSEQUENTIALID()");
-
-                    b.Property<DateTime>("CreatedAtUtc")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Keyword")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                    b.HasKey("UserId", "Keyword");
 
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "Keyword")
-                        .IsUnique();
-
-                    b.ToTable("BlacklistedKeywords");
+                    b.ToTable("BlacklistEntries");
                 });
 
             modelBuilder.Entity("YoutubeSummarizer.Domain.Models.Notification", b =>
@@ -207,8 +192,7 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
 
                     b.Property<string>("Content")
                         .IsRequired()
-                        .HasMaxLength(2000)
-                        .HasColumnType("nvarchar(2000)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
@@ -325,9 +309,6 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWSEQUENTIALID()");
 
-                    b.Property<bool>("IsDismissed")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsRead")
                         .HasColumnType("bit");
 
@@ -355,6 +336,9 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWSEQUENTIALID()");
 
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("datetime2");
 
@@ -364,12 +348,11 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("YoutubeChannelId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "YoutubeChannelId")
+                    b.HasIndex("ChannelId");
+
+                    b.HasIndex("UserId", "ChannelId")
                         .IsUnique();
 
                     b.ToTable("UserYoutubeChannelSubscriptions");
@@ -382,7 +365,7 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWSEQUENTIALID()");
 
-                    b.Property<string>("ChannelIdentifier")
+                    b.Property<string>("ChannelName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -404,15 +387,14 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("YoutubeChannelId")
+                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChannelIdentifier")
+                    b.HasIndex("YoutubeChannelId")
                         .IsUnique();
-
-                    b.HasIndex("YoutubeChannelId");
 
                     b.ToTable("YoutubeChannels");
                 });
@@ -497,34 +479,6 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("YoutubeSummarizer.Infrastructure.Persistence.Entities.ApiSetting", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWSEQUENTIALID()");
-
-                    b.Property<string>("ApiKey")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("ProviderName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProviderName");
-
-                    b.ToTable("ApiSettings");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<System.Guid>", null)
@@ -576,6 +530,28 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.BlacklistEntry", b =>
+                {
+                    b.HasOne("YoutubeSummarizer.Domain.Models.User", "User")
+                        .WithMany("BlacklistEntries")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.RefreshToken", b =>
+                {
+                    b.HasOne("YoutubeSummarizer.Domain.Models.User", "User")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("YoutubeSummarizer.Domain.Models.UserNotification", b =>
                 {
                     b.HasOne("YoutubeSummarizer.Domain.Models.Notification", "Notification")
@@ -584,7 +560,34 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("YoutubeSummarizer.Domain.Models.User", "User")
+                        .WithMany("UserNotifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Notification");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.UserYoutubeChannelSubscription", b =>
+                {
+                    b.HasOne("YoutubeSummarizer.Domain.Models.YoutubeChannel", "YoutubeChannel")
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("ChannelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("YoutubeSummarizer.Domain.Models.User", "User")
+                        .WithMany("Subscriptions")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("YoutubeChannel");
                 });
 
             modelBuilder.Entity("YoutubeSummarizer.Infrastructure.Persistence.ApplicationUser", b =>
@@ -601,6 +604,22 @@ namespace YoutubeSummarizer.Infrastructure.Migrations
             modelBuilder.Entity("YoutubeSummarizer.Domain.Models.Notification", b =>
                 {
                     b.Navigation("UserNotifications");
+                });
+
+            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.User", b =>
+                {
+                    b.Navigation("BlacklistEntries");
+
+                    b.Navigation("RefreshTokens");
+
+                    b.Navigation("Subscriptions");
+
+                    b.Navigation("UserNotifications");
+                });
+
+            modelBuilder.Entity("YoutubeSummarizer.Domain.Models.YoutubeChannel", b =>
+                {
+                    b.Navigation("Subscriptions");
                 });
 #pragma warning restore 612, 618
         }

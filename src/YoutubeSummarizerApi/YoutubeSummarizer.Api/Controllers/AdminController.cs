@@ -66,5 +66,16 @@ namespace YoutubeSummarizer.Api.Controllers
                 return BadRequest(result);
             return Ok(result);
         }
+
+        [HttpPost("mock-webhook")]
+        public async Task<IActionResult> MockWebhook(
+            [FromBody] MockWebhookRequest request,
+            CancellationToken cancellationToken)
+        {
+            var result = await _adminService.MockWebhookAsync(request.VideoUrl, cancellationToken);
+            if (!result.Status)
+                return BadRequest(result);
+            return Ok(result);
+        }
     }
 }

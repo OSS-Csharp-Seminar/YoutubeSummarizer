@@ -7,6 +7,20 @@ services:
     ports:
       - "4040:4040"
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
@@ -25,3 +39,4 @@ services:
 
 volumes:
   sqlserver-data:
+  ollama-data:

@@ -2,6 +2,7 @@ namespace YoutubeSummarizer.Application.Common.Interfaces
 {
     public interface IAiClient
     {
-        Task<string> CompleteAsync(string prompt, CancellationToken cancellationToken = default);
+        Task<string> CompletePrimaryAsync(string prompt, CancellationToken cancellationToken = default);
+        Task<string> CompleteFallbackAsync(string prompt, CancellationToken cancellationToken = default);
     }
 }

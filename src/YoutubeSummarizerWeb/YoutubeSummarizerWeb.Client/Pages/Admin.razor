@@ -3,7 +3,7 @@
 @inject AdminService AdminService
 @inject NavigationManager Navigation
 
-<PageTitle>Admin - YoutubeSummarizer</PageTitle>
+<PageTitle>YoutubeSummarizer - Admin Panel</PageTitle>
 
 <div class="subscriptions-page">
     <div class="subscriptions-header">
@@ -117,7 +117,7 @@
                                             @foreach (var sub in user.Subscriptions)
                                             {
                                                 <tr>
-                                                    <td>@sub.ChannelIdentifier</td>
+                                                    <td>@sub.ChannelName</td>
                                                     <td>@sub.SummarizationStyle</td>
                                                     <td>
                                                         <button class="btn-icon btn-icon-danger" @onclick="() => HandleCancelSubscription(user, sub)" title="Cancel subscription">
@@ -136,6 +136,33 @@
             </div>
         }
     </CollapsibleSection>
+
+    <CollapsibleSection Title="Mock New Video" Subtitle="Simulate a PubSubHubbub notification for a YouTube video." StartExpanded="false">
+        @if (!string.IsNullOrEmpty(mockError))
+        {
+            <div class="alert alert-error alert-dismissable">
+                <span>@mockError</span>
+                <button class="alert-close" @onclick="() => mockError = null">&times;</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(mockSuccess))
+        {
+            <div class="alert alert-success alert-dismissable">
+                <span>@mockSuccess</span>
+                <button class="alert-close" @onclick="() => mockSuccess = null">&times;</button>
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="mockVideoUrl">YouTube Video URL</label>
+            <input id="mockVideoUrl" type="text" class="form-input" @bind="mockVideoUrl" placeholder="https://www.youtube.com/watch?v=..." />
+        </div>
+
+        <button class="btn btn-primary" @onclick="HandleMockWebhook" disabled="@isMocking">
+            @(isMocking ? "Submitting..." : "Submit")
+        </button>
+    </CollapsibleSection>
 </div>
 
 @code {
@@ -148,6 +175,11 @@
     private bool isLoadingUsers;
     private string? usersError;
     private string? usersSuccess;
+
+    private string mockVideoUrl = string.Empty;
+    private string? mockError;
+    private string? mockSuccess;
+    private bool isMocking;
 
     private List<AdminUserModel> users = new();
     private HashSet<Guid> expandedUserIds = new();
@@ -248,7 +280,7 @@
         if (result.Success)
         {
             user.Subscriptions.Remove(sub);
-            usersSuccess = $"Subscription to {sub.ChannelIdentifier} cancelled for {user.FirstName} {user.LastName}.";
+            usersSuccess = $"Subscription to {sub.ChannelName} cancelled for {user.FirstName} {user.LastName}.";
         }
         else
         {
@@ -282,5 +314,32 @@
         }
 
         isSending = false;
+    }
+
+    private async Task HandleMockWebhook()
+    {
+        mockError = null;
+        mockSuccess = null;
+
+        if (string.IsNullOrWhiteSpace(mockVideoUrl))
+        {
+            mockError = "Please enter a YouTube video URL.";
+            return;
+        }
+
+        isMocking = true;
+        var result = await AdminService.MockWebhookAsync(mockVideoUrl.Trim());
+
+        if (result.Success)
+        {
+            mockSuccess = result.Message ?? "Mock webhook sent successfully.";
+            mockVideoUrl = string.Empty;
+        }
+        else
+        {
+            mockError = result.Error;
+        }
+
+        isMocking = false;
     }
 }

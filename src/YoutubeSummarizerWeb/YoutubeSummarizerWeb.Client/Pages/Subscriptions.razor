@@ -3,7 +3,7 @@
 @inject AuthStateService AuthState
 @inject NavigationManager Navigation
 
-<PageTitle>Subscriptions - YoutubeSummarizer</PageTitle>
+<PageTitle>YoutubeSummarizer - Subscriptions</PageTitle>
 
 <div class="subscriptions-page">
     <div class="subscriptions-header">
@@ -26,7 +26,7 @@
         @if (successData is not null)
         {
             <div class="alert alert-success alert-dismissable">
-                <span>Subscribed to <strong>@successData.ChannelIdentifier</strong>! You'll receive summaries for new uploads.</span>
+                <span>Subscribed to <strong>@successData.ChannelName</strong>! You'll receive summaries for new uploads.</span>
                 <button class="alert-close" @onclick="() => successData = null">&times;</button>
             </div>
         }
@@ -81,7 +81,7 @@
                 {
                     <div class="subscription-item">
                         <div class="subscription-info">
-                            <span class="channel-name">@(sub.ChannelIdentifier.StartsWith("@") ? sub.ChannelIdentifier : sub.ChannelUrl)</span>
+                            <span class="channel-name">@sub.ChannelName</span>
                             <div class="custom-dropdown">
                                 <div class="custom-dropdown-trigger @(updatingStyleId == sub.SubscriptionId ? "disabled" : "")"
                                      @onclick="() => ToggleDropdown(sub.SubscriptionId)">
@@ -201,7 +201,7 @@
         unsubscribeError = null;
         unsubscribeSuccess = null;
 
-        var channelName = subscriptions.FirstOrDefault(s => s.SubscriptionId == subscriptionId)?.ChannelIdentifier;
+        var channelName = subscriptions.FirstOrDefault(s => s.SubscriptionId == subscriptionId)?.ChannelName;
         var result = await SubscriptionService.UnsubscribeAsync(subscriptionId);
 
         if (result.Success)

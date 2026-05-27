@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace YoutubeSummarizer.Domain.Models
+﻿namespace YoutubeSummarizer.Domain.Models
 {
     public class User
     {
@@ -11,6 +7,11 @@ namespace YoutubeSummarizer.Domain.Models
         public string LastName { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;  
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public List<UserYoutubeChannelSubscription> Subscriptions { get; set; } = [];
+        public List<BlacklistEntry> BlacklistEntries { get; set; } = [];
+        public List<RefreshToken> RefreshTokens { get; set; } = [];
+        public List<UserNotification> UserNotifications { get; set; } = [];
     }
 }

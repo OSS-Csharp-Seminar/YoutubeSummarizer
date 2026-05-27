@@ -22,7 +22,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
         {
             var query = _db.UserNotifications
                 .Include(x => x.Notification)
-                .Where(x => x.UserId == userId && !x.IsDismissed);
+                .Where(x => x.UserId == userId);
 
             if (type.HasValue)
                 query = query.Where(x => x.Notification.Type == type.Value);
@@ -50,7 +50,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
                 .FirstOrDefaultAsync(x => x.Id == userNotificationId, cancellationToken);
 
         public Task<int> GetUnreadCountAsync(Guid userId, CancellationToken cancellationToken = default)
-            => _db.UserNotifications.CountAsync(x => x.UserId == userId && !x.IsRead && !x.IsDismissed, cancellationToken);
+            => _db.UserNotifications.CountAsync(x => x.UserId == userId && !x.IsRead, cancellationToken);
 
         public async Task AddNotificationAsync(Notification notification, List<Guid> userIds, CancellationToken cancellationToken = default)
         {
@@ -69,11 +69,52 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             await _db.SaveChangesAsync(cancellationToken);
         }
 
+        public async Task DeleteUserNotificationAsync(UserNotification userNotification, CancellationToken cancellationToken = default)
+        {
+            _db.UserNotifications.Remove(userNotification);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<bool> HasRemainingRecipientsAsync(Guid notificationId, CancellationToken cancellationToken = default)
+        {
+            return await _db.UserNotifications.AnyAsync(x => x.NotificationId == notificationId, cancellationToken);
+        }
+
+        public async Task DeleteNotificationAsync(Guid notificationId, CancellationToken cancellationToken = default)
+        {
+            await _db.Notifications
+                .Where(x => x.Id == notificationId)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
         public async Task MarkAllAsReadAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             await _db.UserNotifications
-                .Where(x => x.UserId == userId && !x.IsRead && !x.IsDismissed)
+                .Where(x => x.UserId == userId && !x.IsRead)
                 .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true), cancellationToken);
+        }
+
+        public async Task<List<Guid>> GetNotificationIdsByUserAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            return await _db.UserNotifications
+                .Where(x => x.UserId == userId)
+                .Select(x => x.NotificationId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+        }
+
+        public async Task DeleteAllUserNotificationsAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            await _db.UserNotifications
+                .Where(x => x.UserId == userId)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
+
+        public async Task DeleteOrphanedNotificationsAsync(List<Guid> notificationIds, CancellationToken cancellationToken = default)
+        {
+            await _db.Notifications
+                .Where(n => notificationIds.Contains(n.Id) && !_db.UserNotifications.Any(un => un.NotificationId == n.Id))
+                .ExecuteDeleteAsync(cancellationToken);
         }
     }
 }

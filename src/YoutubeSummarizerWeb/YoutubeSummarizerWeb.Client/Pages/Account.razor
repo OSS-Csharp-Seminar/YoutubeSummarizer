@@ -1,9 +1,9 @@
 @page "/account"
-@inject BlacklistService BlacklistService
+@inject UserAccountService UserAccountService
 @inject AuthStateService AuthState
 @inject NavigationManager Navigation
 
-<PageTitle>My Account - YoutubeSummarizer</PageTitle>
+<PageTitle>YoutubeSummarizer - Account</PageTitle>
 
 <div class="subscriptions-page">
     <div class="subscriptions-header">
@@ -36,7 +36,7 @@
 
         <div class="form-group">
             <label for="keyword">Add keyword</label>
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="input-row">
                 <input id="keyword"
                        class="form-input"
                        placeholder="e.g. crypto"
@@ -61,41 +61,76 @@
         }
         else
         {
-            <div class="subscriptions-list" style="margin-top: 1rem;">
+            <div class="keyword-tags">
                 @foreach (var kw in keywords)
                 {
                     var kwRef = kw;
-                    <div class="subscription-item">
-                        <span class="channel-name">@kw.Keyword</span>
-                        <button class="btn btn-danger"
-                                disabled="@(removingId == kw.Id)"
-                                @onclick="() => HandleRemove(kwRef)">
-                            @(removingId == kw.Id ? "Removing..." : "Remove")
-                        </button>
-                    </div>
+                    <span class="keyword-tag">
+                        @kw.Keyword
+                        <button class="keyword-tag-remove"
+                                disabled="@(removingKeyword == kw.Keyword)"
+                                @onclick="() => HandleRemove(kwRef)">&times;</button>
+                    </span>
                 }
             </div>
         }
 
         @if (!string.IsNullOrEmpty(removeError))
         {
-            <div class="alert alert-error alert-dismissable" style="margin-top: 1rem;">
+            <div class="alert alert-error alert-dismissable">
                 <span>@removeError</span>
                 <button class="alert-close" @onclick="() => removeError = null">&times;</button>
             </div>
         }
     </div>
+
+    <div class="subscribe-card">
+        <h2>Delete Account</h2>
+        <p class="card-subtitle">
+            Permanently delete your account and all associated data. This action cannot be undone.
+        </p>
+
+        @if (!string.IsNullOrEmpty(deleteError))
+        {
+            <div class="alert alert-error alert-dismissable">
+                <span>@deleteError</span>
+                <button class="alert-close" @onclick="() => deleteError = null">&times;</button>
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="delete-password">Confirm your password</label>
+            <input id="delete-password"
+                   type="password"
+                   class="form-input"
+                   placeholder="Enter your password"
+                   @bind="deletePassword"
+                   @bind:event="oninput" />
+        </div>
+
+        <div style="text-align: center">
+            <button class="btn btn-danger"
+                    disabled="@(isDeleting || string.IsNullOrWhiteSpace(deletePassword))"
+                    @onclick="HandleDeleteAccount">
+                @(isDeleting ? "Deleting..." : "Delete My Account")
+            </button>
+        </div>
+    </div>
 </div>
 
 @code {
-    private List<BlacklistedKeyword> keywords = new();
+    private List<BlacklistEntry> keywords = new();
     private string newKeyword = string.Empty;
     private bool isLoadingKeywords;
     private bool isAdding;
-    private Guid? removingId;
+    private string? removingKeyword;
     private string? addError;
     private string? addSuccess;
     private string? removeError;
+
+    private string deletePassword = string.Empty;
+    private bool isDeleting;
+    private string? deleteError;
 
     protected override async Task OnInitializedAsync()
     {
@@ -111,7 +146,7 @@
     private async Task LoadKeywords()
     {
         isLoadingKeywords = true;
-        keywords = await BlacklistService.GetKeywordsAsync();
+        keywords = await UserAccountService.GetBlacklistEntriesAsync();
         isLoadingKeywords = false;
     }
 
@@ -123,11 +158,11 @@
         addError = null;
         addSuccess = null;
 
-        var result = await BlacklistService.AddKeywordAsync(newKeyword.Trim());
+        var result = await UserAccountService.AddBlacklistEntryAsync(newKeyword.Trim());
 
         if (result.Success)
         {
-            addSuccess = $"\"{result.Data!.Keyword}\" added to your blacklist.";
+            addSuccess = $"\"{result.Keyword}\" added to your blacklist.";
             newKeyword = string.Empty;
             await LoadKeywords();
         }
@@ -145,18 +180,38 @@
             await HandleAdd();
     }
 
-    private async Task HandleRemove(BlacklistedKeyword kw)
+    private async Task HandleRemove(BlacklistEntry kw)
     {
-        removingId = kw.Id;
+        removingKeyword = kw.Keyword;
         removeError = null;
 
-        var result = await BlacklistService.RemoveKeywordAsync(kw.Id);
+        var result = await UserAccountService.RemoveBlacklistEntryAsync(kw.Keyword);
 
         if (result.Success)
             keywords.Remove(kw);
         else
             removeError = result.Error;
 
-        removingId = null;
+        removingKeyword = null;
+    }
+
+    private async Task HandleDeleteAccount()
+    {
+        if (string.IsNullOrWhiteSpace(deletePassword)) return;
+
+        isDeleting = true;
+        deleteError = null;
+
+        var result = await UserAccountService.DeleteAccountAsync(deletePassword);
+
+        if (result.Success)
+        {
+            AuthState.ClearUser();
+            Navigation.NavigateTo("/login", forceLoad: true);
+            return;
+        }
+
+        deleteError = result.Error;
+        isDeleting = false;
     }
 }

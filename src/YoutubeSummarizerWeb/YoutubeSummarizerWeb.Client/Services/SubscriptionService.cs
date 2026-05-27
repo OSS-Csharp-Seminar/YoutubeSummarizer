@@ -13,16 +13,23 @@ public class SubscriptionService
 
     public async Task<SubscribeResult> SubscribeAsync(string channelUrl, SummarizationStyle style)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/youtube-channels/subscribe");
-        request.Content = JsonContent.Create(new { ChannelUrl = channelUrl, SummarizationStyle = (int)style });
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, "/api/youtube-channels/subscribe");
+            request.Content = JsonContent.Create(new { ChannelUrl = channelUrl, SummarizationStyle = (int)style });
 
-        var response = await _httpClient.SendAsync(request);
+            var response = await _httpClient.SendAsync(request);
 
-        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<SubscribeResponse>>();
-        if (result == null || !result.Status)
-            return new SubscribeResult { Success = false, Error = result?.Message ?? "Failed to subscribe. Check the URL and try again." };
+            var result = await response.Content.ReadFromJsonAsync<ServiceResponse<SubscribeResponse>>();
+            if (result == null || !result.Status)
+                return new SubscribeResult { Success = false, Error = result?.Message ?? "Failed to subscribe. Check the URL and try again." };
 
-        return new SubscribeResult { Success = true, Data = result.Data };
+            return new SubscribeResult { Success = true, Data = result.Data };
+        }
+        catch
+        {
+            return new SubscribeResult { Success = false, Error = "Failed to subscribe. Check the URL and try again." };
+        }
     }
 
     public async Task<List<UserSubscription>> GetSubscriptionsAsync()
@@ -72,7 +79,7 @@ public class SubscribeResult
 public class SubscribeResponse
 {
     public Guid YoutubeChannelId { get; set; }
-    public string ChannelIdentifier { get; set; } = string.Empty;
+    public string ChannelName { get; set; } = string.Empty;
     public string ChannelUrl { get; set; } = string.Empty;
     public SummarizationStyle SummarizationStyle { get; set; }
 }
@@ -81,7 +88,7 @@ public class UserSubscription
 {
     public Guid SubscriptionId { get; set; }
     public Guid YoutubeChannelId { get; set; }
-    public string ChannelIdentifier { get; set; } = string.Empty;
+    public string ChannelName { get; set; } = string.Empty;
     public string ChannelUrl { get; set; } = string.Empty;
     public SummarizationStyle SummarizationStyle { get; set; }
     public DateTime CreatedAtUtc { get; set; }

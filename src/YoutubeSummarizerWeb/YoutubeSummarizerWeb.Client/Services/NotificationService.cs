@@ -70,4 +70,13 @@ public class NotificationService
         return result?.Status == true;
     }
 
+    public async Task<bool> DismissAllAsync()
+    {
+        var response = await _httpClient.DeleteAsync("/api/notifications/dismiss-all");
+        var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+        if (result?.Status == true)
+            OnUnreadCountChanged?.Invoke();
+        return result?.Status == true;
+    }
+
 }

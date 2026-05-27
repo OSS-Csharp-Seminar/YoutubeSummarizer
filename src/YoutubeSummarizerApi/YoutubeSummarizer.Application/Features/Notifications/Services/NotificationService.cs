@@ -2,7 +2,6 @@ using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Notifications.Dtos;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
-using YoutubeSummarizer.Domain.Enums;
 using YoutubeSummarizer.Domain.Models;
 
 namespace YoutubeSummarizer.Application.Features.Notifications.Services
@@ -24,14 +23,14 @@ namespace YoutubeSummarizer.Application.Features.Notifications.Services
         }
 
         public async Task<ServiceResponse<PaginatedResult<NotificationDto>>> GetNotificationsAsync(
-            NotificationType? type, string? senderSearch, bool sortDescending,
-            int page, int pageSize, CancellationToken cancellationToken = default)
+            GetNotificationsQuery query, CancellationToken cancellationToken = default)
         {
             try
             {
                 var userId = _currentUserService.GetCurrentUserId();
                 var (items, totalCount) = await _notificationRepo.GetPaginatedAsync(
-                    userId, type, senderSearch, sortDescending, page, pageSize, cancellationToken);
+                    userId, query.Type, query.SenderSearch, query.SortDescending,
+                    query.Page, query.PageSize, cancellationToken);
 
                 var mapped = new PaginatedResult<NotificationDto>(
                     items.Select(un => new NotificationDto
@@ -45,8 +44,8 @@ namespace YoutubeSummarizer.Application.Features.Notifications.Services
                         CreatedAtUtc = un.Notification.CreatedAtUtc
                     }).ToList(),
                     totalCount,
-                    page,
-                    pageSize
+                    query.Page,
+                    query.PageSize
                 );
 
                 return ServiceResponse<PaginatedResult<NotificationDto>>.Success(mapped, "Notifications retrieved.");
@@ -113,9 +112,33 @@ namespace YoutubeSummarizer.Application.Features.Notifications.Services
                 if (userNotification is null || userNotification.UserId != userId)
                     return ServiceResponse<bool>.Failure("Notification not found.");
 
-                userNotification.IsDismissed = true;
-                await _notificationRepo.UpdateUserNotificationAsync(userNotification, cancellationToken);
+                var notificationId = userNotification.NotificationId;
+                await _notificationRepo.DeleteUserNotificationAsync(userNotification, cancellationToken);
+
+                var hasRemaining = await _notificationRepo.HasRemainingRecipientsAsync(notificationId, cancellationToken);
+                if (!hasRemaining)
+                    await _notificationRepo.DeleteNotificationAsync(notificationId, cancellationToken);
+
                 return ServiceResponse<bool>.Success(true, "Notification dismissed.");
+            }
+            catch
+            {
+                return ServiceResponse<bool>.Failure("An error occurred.");
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> DismissAllAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userId = _currentUserService.GetCurrentUserId();
+                var notificationIds = await _notificationRepo.GetNotificationIdsByUserAsync(userId, cancellationToken);
+                await _notificationRepo.DeleteAllUserNotificationsAsync(userId, cancellationToken);
+
+                if (notificationIds.Count > 0)
+                    await _notificationRepo.DeleteOrphanedNotificationsAsync(notificationIds, cancellationToken);
+
+                return ServiceResponse<bool>.Success(true, "All notifications dismissed.");
             }
             catch
             {

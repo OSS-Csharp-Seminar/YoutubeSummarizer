@@ -14,9 +14,6 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
             _db = db;
         }
 
-        public Task<YoutubeChannel?> GetByIdentifierAsync(string identifier, CancellationToken cancellationToken = default)
-            => _db.YoutubeChannels.FirstOrDefaultAsync(x => x.ChannelIdentifier == identifier, cancellationToken);
-
         public Task<YoutubeChannel?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
             => _db.YoutubeChannels.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 

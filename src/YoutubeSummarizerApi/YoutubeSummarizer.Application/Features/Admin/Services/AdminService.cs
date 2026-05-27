@@ -1,9 +1,12 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Admin.Dtos;
 using YoutubeSummarizer.Application.Features.Admin.Interfaces;
 using YoutubeSummarizer.Application.Features.Notifications.Dtos;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Enums;
@@ -18,6 +21,10 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
         private readonly INotificationService _notificationService;
         private readonly IRefreshTokenRepository _refreshTokenRepo;
         private readonly IYoutubeWebhookSubscriptionService _webhookService;
+        private readonly IYoutubeMetadataClient _metadataClient;
+        private readonly IMockWebhookSender _mockWebhookSender;
+        private readonly IOptionsMonitor<YoutubeWebhookSettings> _webhookSettings;
+        private readonly ILogger<AdminService> _logger;
 
         public AdminService(
             IUserRepository userRepo,
@@ -25,7 +32,11 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
             IYoutubeChannelRepository channelRepo,
             INotificationService notificationService,
             IRefreshTokenRepository refreshTokenRepo,
-            IYoutubeWebhookSubscriptionService webhookService)
+            IYoutubeWebhookSubscriptionService webhookService,
+            IYoutubeMetadataClient metadataClient,
+            IMockWebhookSender mockWebhookSender,
+            IOptionsMonitor<YoutubeWebhookSettings> webhookSettings,
+            ILogger<AdminService> logger)
         {
             _userRepo = userRepo;
             _subRepo = subRepo;
@@ -33,46 +44,32 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
             _notificationService = notificationService;
             _refreshTokenRepo = refreshTokenRepo;
             _webhookService = webhookService;
+            _metadataClient = metadataClient;
+            _mockWebhookSender = mockWebhookSender;
+            _webhookSettings = webhookSettings;
+            _logger = logger;
         }
 
         public async Task<ServiceResponse<List<AdminUserDto>>> GetAllUsersAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                var users = await _userRepo.GetAllAsync(cancellationToken);
-                var result = new List<AdminUserDto>();
+                var users = await _userRepo.GetAllWithSubscriptionsAsync(cancellationToken);
 
-                foreach (var user in users)
+                var result = users.Select(user => new AdminUserDto
                 {
-                    var subs = await _subRepo.GetByUserIdAsync(user.Id, cancellationToken);
-                    var channelIds = subs.Select(s => s.YoutubeChannelId).Distinct().ToList();
-                    var channels = await _channelRepo.GetByIdsAsync(channelIds, cancellationToken);
-                    var channelMap = channels.ToDictionary(c => c.Id);
-
-                    var dto = new AdminUserDto
+                    Id = user.Id,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    IsActive = user.IsActive,
+                    Subscriptions = user.Subscriptions.Select(s => new AdminUserSubscriptionDto
                     {
-                        Id = user.Id,
-                        FirstName = user.FirstName,
-                        LastName = user.LastName,
-                        Email = user.Email,
-                        IsActive = user.IsActive,
-                        Subscriptions = subs.Select(s =>
-                        {
-                            var channelDisplay = "Unknown";
-                            if (channelMap.TryGetValue(s.YoutubeChannelId, out var ch))
-                                channelDisplay = ch.ChannelIdentifier.StartsWith("@") ? ch.ChannelIdentifier : ch.ChannelUrl;
-
-                            return new AdminUserSubscriptionDto
-                            {
-                                SubscriptionId = s.Id,
-                                ChannelIdentifier = channelDisplay,
-                                SummarizationStyle = s.SummarizationStyle.ToString()
-                            };
-                        }).ToList()
-                    };
-
-                    result.Add(dto);
-                }
+                        SubscriptionId = s.Id,
+                        ChannelName = s.YoutubeChannel.ChannelName,
+                        SummarizationStyle = s.SummarizationStyle.ToString()
+                    }).ToList()
+                }).ToList();
 
                 return ServiceResponse<List<AdminUserDto>>.Success(result, "Users loaded successfully.");
             }
@@ -153,7 +150,7 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
                 if (subscription is null)
                     return ServiceResponse<bool>.Failure("Subscription not found.");
 
-                var channelId = subscription.YoutubeChannelId;
+                var channelId = subscription.ChannelId;
                 await _subRepo.DeleteAsync(subscription, cancellationToken);
 
                 var remaining = await _subRepo.GetByYoutubeChannelIdAsync(channelId, cancellationToken);
@@ -173,6 +170,54 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
             catch
             {
                 return ServiceResponse<bool>.Failure("Failed to cancel subscription.");
+            }
+        }
+
+        public async Task<ServiceResponse<bool>> MockWebhookAsync(string videoUrl, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var callbackUrl = _webhookSettings.CurrentValue.CallbackUrl;
+                if (string.IsNullOrEmpty(callbackUrl))
+                    return ServiceResponse<bool>.Failure("Webhook callback URL is not configured. Is ngrok running?");
+
+                var metadata = await _metadataClient.GetVideoMetadataAsync(videoUrl, cancellationToken);
+
+                var publishedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+                var atomXml = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+<feed xmlns:yt=""http://www.youtube.com/xml/schemas/2015"" xmlns=""http://www.w3.org/2005/Atom"">
+  <link rel=""hub"" href=""https://pubsubhubbub.appspot.com""/>
+  <link rel=""self"" href=""https://www.youtube.com/xml/feeds/videos.xml?channel_id={metadata.ChannelId}""/>
+  <title>YouTube video feed</title>
+  <updated>{publishedAt}</updated>
+  <entry>
+    <id>yt:video:{metadata.VideoId}</id>
+    <yt:videoId>{metadata.VideoId}</yt:videoId>
+    <yt:channelId>{metadata.ChannelId}</yt:channelId>
+    <title>{System.Security.SecurityElement.Escape(metadata.Title)}</title>
+    <link rel=""alternate"" href=""https://www.youtube.com/watch?v={metadata.VideoId}""/>
+    <author>
+      <name>{System.Security.SecurityElement.Escape(metadata.ChannelName)}</name>
+      <uri>https://www.youtube.com/channel/{metadata.ChannelId}</uri>
+    </author>
+    <published>{publishedAt}</published>
+    <updated>{publishedAt}</updated>
+  </entry>
+</feed>";
+
+                _logger.LogInformation("Sending mock webhook to {CallbackUrl}", callbackUrl);
+
+                var success = await _mockWebhookSender.SendAsync(callbackUrl, atomXml, cancellationToken);
+
+                if (!success)
+                    return ServiceResponse<bool>.Failure("Webhook endpoint returned an error.");
+
+                return ServiceResponse<bool>.Success(true, $"Mock webhook sent for \"{metadata.Title}\" by {metadata.ChannelName}.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send mock webhook");
+                return ServiceResponse<bool>.Failure($"Failed to send mock webhook: {ex.Message}");
             }
         }
     }

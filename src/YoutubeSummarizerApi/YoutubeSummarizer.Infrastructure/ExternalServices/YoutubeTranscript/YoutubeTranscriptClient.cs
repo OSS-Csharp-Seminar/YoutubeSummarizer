@@ -1,7 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Text.Json;
-using YoutubeSummarizer.Application.Common.Interfaces;
+using Microsoft.Extensions.Options;
+using YoutubeSummarizer.Application.Features.YoutubeTranscript;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript.Models;
@@ -11,26 +12,26 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript
     public class YoutubeTranscriptClient : IYoutubeTranscriptClient
     {
         private readonly HttpClient _httpClient;
-        private readonly IApiSettingsRepository _apiSettingsRepository;
+        private readonly YoutubeTranscriptSettings _settings;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
-        public YoutubeTranscriptClient(HttpClient httpClient, IApiSettingsRepository apiSettingsRepository)
+        public YoutubeTranscriptClient(HttpClient httpClient, IOptions<YoutubeTranscriptSettings> settings)
         {
             _httpClient = httpClient;
-            _apiSettingsRepository = apiSettingsRepository;
+            _settings = settings.Value;
         }
 
         public async Task<GetYoutubeTranscriptResponse> GetTranscriptAsync(GetYoutubeTranscriptRequest request, CancellationToken cancellationToken = default)
         {
-            var apiKey = await _apiSettingsRepository.GetApiKeyAsync("YoutubeTranscriptApi", cancellationToken);
+            var apiKey = _settings.ApiKey;
 
             var queryString = $"?video_url={Uri.EscapeDataString(request.VideoUrl)}&send_metadata=true&format=json&include_timestamp=true";
 
-            var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"/api/v2/youtube/transcript{queryString}");
+            var requestMessage = new HttpRequestMessage(HttpMethod.Get, $"api/v2/youtube/transcript{queryString}");
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
             var response = await _httpClient.SendAsync(requestMessage, cancellationToken);

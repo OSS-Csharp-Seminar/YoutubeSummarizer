@@ -20,7 +20,18 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
             if (string.IsNullOrEmpty(channelId) || string.IsNullOrEmpty(videoId))
                 throw new InvalidOperationException("Failed to parse YouTube Atom XML: missing channelId or videoId.");
 
-            return new YoutubeWebhookNotification(channelId, videoId);
+            var videoTitle = entry?.Element(Atom + "title")?.Value ?? "Unknown";
+            var channelName = entry?.Element(Atom + "author")?.Element(Atom + "name")?.Value ?? "Unknown";
+            var videoUrl = entry?.Elements(Atom + "link")
+                .FirstOrDefault(l => l.Attribute("rel")?.Value == "alternate")
+                ?.Attribute("href")?.Value ?? $"https://www.youtube.com/watch?v={videoId}";
+
+            DateTime? publishedAtUtc = null;
+            var publishedStr = entry?.Element(Atom + "published")?.Value;
+            if (DateTime.TryParse(publishedStr, out var parsed))
+                publishedAtUtc = parsed.ToUniversalTime();
+
+            return new YoutubeWebhookNotification(channelId, videoId, videoTitle, channelName, videoUrl, publishedAtUtc);
         }
     }
 }

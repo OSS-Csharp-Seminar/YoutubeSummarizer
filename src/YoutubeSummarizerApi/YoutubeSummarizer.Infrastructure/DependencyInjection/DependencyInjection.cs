@@ -2,13 +2,14 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Features.Summarize;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeTranscript;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
+using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Infrastructure.BackgroundServices;
 using YoutubeSummarizer.Infrastructure.ExternalServices.Ai;
@@ -18,7 +19,10 @@ using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Persistence.Repositories;
 using YoutubeSummarizer.Infrastructure.Security;
-using YoutubeSummarizer.Application.Features.Blacklist.Interfaces;
+using YoutubeSummarizer.Application.Features.Admin.Interfaces;
+using YoutubeSummarizer.Application.Features.UserAccount.Interfaces;
+using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeMetadata;
+using YoutubeSummarizer.Infrastructure.Hubs;
 
 namespace YoutubeSummarizer.Infrastructure.DependencyInjection
 {
@@ -48,8 +52,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<IAuthRepository, AuthRepository>();
             services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
             services.AddScoped<IJwtService, JwtService>();
-            services.AddScoped<IApiSettingsRepository, ApiSettingsRepository>();
-            services.AddScoped<IAiClient, AiClient>();
+            services.AddHttpClient<IAiClient, AiClient>();
             services.Configure<AiSettings>(configuration.GetSection("AiSettings"));
             services.AddHttpContextAccessor();
             services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -57,11 +60,13 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<IUserYoutubeChannelSubscriptionRepository, UserYoutubeChannelSubscriptionRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
             services.AddScoped<IYoutubeWebhookNotificationParser, YoutubeAtomXmlParser>();
-            services.AddScoped<IBlacklistRepository, BlacklistRepository>();
+            services.AddScoped<IBlacklistEntryRepository, BlacklistEntryRepository>();
 
+            services.Configure<YoutubeTranscriptSettings>(configuration.GetSection("ExternalApis:YoutubeTranscript"));
             services.AddHttpClient<IYoutubeTranscriptClient, YoutubeTranscriptClient>(client =>
             {
-                client.BaseAddress = new Uri(configuration["ExternalApis:YoutubeTranscript:BaseUrl"]!);
+                var baseUrl = configuration["ExternalApis:YoutubeTranscript:BaseUrl"]!.TrimEnd('/') + "/";
+                client.BaseAddress = new Uri(baseUrl);
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
@@ -72,6 +77,11 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             });
             services.AddHostedService<YoutubeWebhookRenewalBackgroundService>();
             services.AddHostedService<NgrokTunnelInitializer>();
+            services.AddHttpClient<IYoutubeMetadataClient, YoutubeMetadataClient>();
+            services.AddHttpClient<IMockWebhookSender, MockWebhookSender>();
+
+            services.AddSignalR();
+            services.AddScoped<INotificationHubService, NotificationHubService>();
 
             return services;
         }

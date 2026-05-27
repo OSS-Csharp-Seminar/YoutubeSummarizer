@@ -374,6 +374,11 @@ a:hover {
     color: var(--text-secondary);
 }
 
+.input-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
 .form-input {
     width: 100%;
     padding: 0.6rem 0.85rem;
@@ -884,6 +889,51 @@ a:hover {
 .no-subscriptions {
     color: var(--text-muted);
     font-size: 0.9rem;
+}
+
+.keyword-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.keyword-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.keyword-tag-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    transition: color 0.15s, background 0.15s;
+}
+
+.keyword-tag-remove:hover {
+    color: var(--error);
+    background: rgba(255, 59, 48, 0.1);
+}
+
+.keyword-tag-remove:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 .btn-danger {

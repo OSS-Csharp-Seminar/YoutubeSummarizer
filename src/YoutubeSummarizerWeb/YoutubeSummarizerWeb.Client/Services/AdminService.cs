@@ -101,6 +101,23 @@ public class AdminService
             return new AdminActionResult { Error = "Failed to cancel subscription." };
         }
     }
+
+    public async Task<AdminActionResult> MockWebhookAsync(string videoUrl)
+    {
+        try
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/admin/mock-webhook", new { VideoUrl = videoUrl });
+            var result = await response.Content.ReadFromJsonAsync<ServiceResponse<bool>>();
+            if (result == null || !result.Status)
+                return new AdminActionResult { Error = result?.Message ?? "Failed to send mock webhook." };
+
+            return new AdminActionResult { Message = result.Message };
+        }
+        catch
+        {
+            return new AdminActionResult { Error = "Failed to send mock webhook." };
+        }
+    }
 }
 
 public class AdminUsersResult
@@ -130,6 +147,6 @@ public class AdminUserModel
 public class AdminUserSubscriptionModel
 {
     public Guid SubscriptionId { get; set; }
-    public string ChannelIdentifier { get; set; } = string.Empty;
+    public string ChannelName { get; set; } = string.Empty;
     public string SummarizationStyle { get; set; } = string.Empty;
 }

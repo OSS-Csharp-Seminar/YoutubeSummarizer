@@ -10,11 +10,10 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
-            builder.Property(x => x.ChannelIdentifier).IsRequired().HasMaxLength(200);
-            builder.HasIndex(x => x.ChannelIdentifier).IsUnique();
+            builder.Property(x => x.YoutubeChannelId).IsRequired().HasMaxLength(100);
+            builder.HasIndex(x => x.YoutubeChannelId).IsUnique();
+            builder.Property(x => x.ChannelName).IsRequired().HasMaxLength(200);
             builder.Property(x => x.ChannelUrl).IsRequired();
-            builder.Property(x => x.YoutubeChannelId).HasMaxLength(100);
-            builder.HasIndex(x => x.YoutubeChannelId);
         }
     }
 }

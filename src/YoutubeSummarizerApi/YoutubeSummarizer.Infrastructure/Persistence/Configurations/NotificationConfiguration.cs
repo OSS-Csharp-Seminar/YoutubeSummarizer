@@ -12,7 +12,7 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
             builder.Property(x => x.Id).HasDefaultValueSql("NEWSEQUENTIALID()");
             builder.Property(x => x.Type).IsRequired();
             builder.Property(x => x.Title).IsRequired().HasMaxLength(200);
-            builder.Property(x => x.Content).IsRequired().HasMaxLength(2000);
+            builder.Property(x => x.Content).IsRequired();
             builder.Property(x => x.SenderName).IsRequired().HasMaxLength(100);
 
             builder.HasMany(x => x.UserNotifications)
@@ -32,6 +32,11 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Configurations
             builder.HasIndex(x => x.UserId);
             builder.HasIndex(x => new { x.UserId, x.IsRead });
             builder.HasIndex(x => x.NotificationId);
+
+            builder.HasOne(x => x.User)
+                .WithMany(u => u.UserNotifications)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

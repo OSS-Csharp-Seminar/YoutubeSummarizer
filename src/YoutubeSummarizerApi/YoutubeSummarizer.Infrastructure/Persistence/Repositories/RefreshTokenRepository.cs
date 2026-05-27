@@ -38,5 +38,12 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
                 .Where(t => t.UserId == userId && t.RevokedAtUtc == null && t.ExpiresAtUtc > DateTime.UtcNow)
                 .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAtUtc, DateTime.UtcNow), cancellationToken);
         }
+
+        public async Task DeleteAllByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+        {
+            await _db.RefreshTokens
+                .Where(t => t.UserId == userId)
+                .ExecuteDeleteAsync(cancellationToken);
+        }
     }
 }
