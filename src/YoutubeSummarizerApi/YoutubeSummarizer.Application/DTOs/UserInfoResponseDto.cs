@@ -1,3 +1,6 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace YoutubeSummarizer.Application.DTOs
 {
     public class UserInfoResponseDto

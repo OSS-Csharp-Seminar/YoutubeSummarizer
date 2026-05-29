@@ -1,24 +1,28 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
 
-namespace YoutubeSummarizer.Infrastructure.BackgroundServices
+namespace YoutubeSummarizer.Infrastructure.Ngrok
 {
     public class NgrokTunnelInitializer : BackgroundService
     {
-        private readonly IOptionsMonitor<YoutubeWebhookSettings> _settings;
+        private readonly IPublicBaseUrlWriter _publicBaseUrlWriter;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<NgrokTunnelInitializer> _logger;
 
         public NgrokTunnelInitializer(
-            IOptionsMonitor<YoutubeWebhookSettings> settings,
+            IPublicBaseUrlWriter publicBaseUrlWriter,
             IHttpClientFactory httpClientFactory,
             ILogger<NgrokTunnelInitializer> logger)
         {
-            _settings = settings;
+            _publicBaseUrlWriter = publicBaseUrlWriter;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
@@ -39,9 +43,8 @@ namespace YoutubeSummarizer.Infrastructure.BackgroundServices
 
                     if (tunnel is not null)
                     {
-                        var callbackUrl = $"{tunnel.PublicUrl}/api/webhooks/youtube";
-                        _settings.CurrentValue.CallbackUrl = callbackUrl;
-                        _logger.LogInformation("Ngrok tunnel URL set to {CallbackUrl}", callbackUrl);
+                        _publicBaseUrlWriter.SetPublicBaseUrl(tunnel.PublicUrl);
+                        _logger.LogInformation("Ngrok public base URL set to {PublicBaseUrl}", tunnel.PublicUrl);
                         return;
                     }
                 }
@@ -53,7 +56,7 @@ namespace YoutubeSummarizer.Infrastructure.BackgroundServices
                 await Task.Delay(2000, stoppingToken);
             }
 
-            _logger.LogWarning("Could not resolve ngrok tunnel URL. Webhook callbacks will use the static config value.");
+            _logger.LogWarning("Could not resolve ngrok tunnel URL. Webhook callbacks will be unavailable until configured.");
         }
 
         private class NgrokApiResponse

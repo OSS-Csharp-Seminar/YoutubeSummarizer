@@ -1,3 +1,5 @@
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using YoutubeSummarizer.Domain.Models;
 
 namespace YoutubeSummarizer.Application.Interfaces

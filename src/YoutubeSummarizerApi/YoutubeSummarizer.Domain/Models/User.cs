@@ -1,4 +1,7 @@
-﻿namespace YoutubeSummarizer.Domain.Models
+﻿using System;
+using System.Collections.Generic;
+
+namespace YoutubeSummarizer.Domain.Models
 {
     public class User
     {

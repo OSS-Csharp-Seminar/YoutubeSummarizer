@@ -1,5 +1,9 @@
+﻿using System.Linq;
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Admin.Dtos;
@@ -7,7 +11,7 @@ using YoutubeSummarizer.Application.Features.Admin.Interfaces;
 using YoutubeSummarizer.Application.Features.Notifications.Dtos;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
-using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Dtos;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 using YoutubeSummarizer.Application.Interfaces;
 using YoutubeSummarizer.Domain.Enums;
@@ -24,7 +28,6 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
         private readonly IYoutubeWebhookSubscriptionService _webhookService;
         private readonly IYoutubeMetadataClient _metadataClient;
         private readonly IMockWebhookSender _mockWebhookSender;
-        private readonly IOptionsMonitor<YoutubeWebhookSettings> _webhookSettings;
         private readonly ILogger<AdminService> _logger;
 
         public AdminService(
@@ -36,7 +39,6 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
             IYoutubeWebhookSubscriptionService webhookService,
             IYoutubeMetadataClient metadataClient,
             IMockWebhookSender mockWebhookSender,
-            IOptionsMonitor<YoutubeWebhookSettings> webhookSettings,
             ILogger<AdminService> logger)
         {
             _userRepo = userRepo;
@@ -47,7 +49,6 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
             _webhookService = webhookService;
             _metadataClient = metadataClient;
             _mockWebhookSender = mockWebhookSender;
-            _webhookSettings = webhookSettings;
             _logger = logger;
         }
 
@@ -178,10 +179,6 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
         {
             try
             {
-                var callbackUrl = _webhookSettings.CurrentValue.CallbackUrl;
-                if (string.IsNullOrEmpty(callbackUrl))
-                    return ServiceResponse<bool>.Failure("Webhook callback URL is not configured. Is ngrok running?");
-
                 var metadata = await _metadataClient.GetVideoMetadataAsync(videoUrl, cancellationToken);
 
                 var publishedAt = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
@@ -206,14 +203,17 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
   </entry>
 </feed>";
 
-                _logger.LogInformation("Sending mock webhook to {CallbackUrl}", callbackUrl);
+                _logger.LogInformation("Sending mock webhook");
 
-                var success = await _mockWebhookSender.SendAsync(callbackUrl, atomXml, cancellationToken);
+                var result = await _mockWebhookSender.SendAsync(atomXml, cancellationToken);
 
-                if (!success)
-                    return ServiceResponse<bool>.Failure("Webhook endpoint returned an error.");
-
-                return ServiceResponse<bool>.Success(true, $"Mock webhook sent for \"{metadata.Title}\" by {metadata.ChannelName}.");
+                return result switch
+                {
+                    MockWebhookResult.Success => ServiceResponse<bool>.Success(true, $"Mock webhook sent for \"{metadata.Title}\" by {metadata.ChannelName}."),
+                    MockWebhookResult.NotConfigured => ServiceResponse<bool>.Failure("Webhook callback URL is not configured. Is ngrok running?"),
+                    MockWebhookResult.EndpointError => ServiceResponse<bool>.Failure("Webhook endpoint returned an error."),
+                    _ => ServiceResponse<bool>.Failure("Unknown mock webhook result.")
+                };
             }
             catch (Exception ex)
             {

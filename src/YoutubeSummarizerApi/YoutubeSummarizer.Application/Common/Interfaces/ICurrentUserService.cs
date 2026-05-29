@@ -1,3 +1,5 @@
+﻿using System;
+
 namespace YoutubeSummarizer.Application.Common.Interfaces
 {
     public interface ICurrentUserService

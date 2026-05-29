@@ -1,3 +1,5 @@
+using System;
+
 namespace YoutubeSummarizer.Domain.Models
 {
     public class UserNotification

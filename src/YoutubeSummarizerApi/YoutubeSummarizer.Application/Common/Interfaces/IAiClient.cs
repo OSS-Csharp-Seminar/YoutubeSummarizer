@@ -1,3 +1,6 @@
+﻿using System.Threading;
+using System.Threading.Tasks;
+
 namespace YoutubeSummarizer.Application.Common.Interfaces
 {
     public interface IAiClient

@@ -1,3 +1,5 @@
+﻿using System.Collections.Generic;
+
 namespace YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos
 {
     public class GetYoutubeTranscriptResponse

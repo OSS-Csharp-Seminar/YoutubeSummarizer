@@ -1,3 +1,5 @@
+﻿using System.Threading;
+using System.Threading.Tasks;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
 
 namespace YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces

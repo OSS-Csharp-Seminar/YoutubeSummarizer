@@ -1,3 +1,6 @@
+﻿using System;
+using System.Net.Http;
+using Microsoft.Extensions.DependencyInjection;
 using YoutubeSummarizerWeb.Client.Services;
 
 namespace YoutubeSummarizerWeb.Client.DependencyInjection

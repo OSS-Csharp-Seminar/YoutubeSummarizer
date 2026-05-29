@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using YoutubeSummarizerWeb.Client.DependencyInjection;
 

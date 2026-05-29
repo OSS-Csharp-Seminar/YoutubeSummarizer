@@ -1,3 +1,7 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Net.Http.Json;
 
 namespace YoutubeSummarizerWeb.Client.Services;

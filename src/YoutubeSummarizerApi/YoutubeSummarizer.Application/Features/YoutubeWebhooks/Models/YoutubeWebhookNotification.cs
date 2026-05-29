@@ -1,3 +1,5 @@
+﻿using System;
+
 namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Models
 {
     public sealed record YoutubeWebhookNotification(

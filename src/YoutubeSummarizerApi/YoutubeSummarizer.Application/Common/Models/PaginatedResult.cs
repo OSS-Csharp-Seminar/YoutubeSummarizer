@@ -1,3 +1,6 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace YoutubeSummarizer.Application.Common.Models
 {
     public class PaginatedResult<T>

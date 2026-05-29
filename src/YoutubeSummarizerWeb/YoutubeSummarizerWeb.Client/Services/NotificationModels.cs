@@ -1,3 +1,6 @@
+﻿using System;
+using System.Collections.Generic;
+
 namespace YoutubeSummarizerWeb.Client.Services;
 
 public enum NotificationType

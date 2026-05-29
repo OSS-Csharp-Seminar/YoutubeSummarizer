@@ -1,6 +1,13 @@
+﻿using System;
 using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.DTOs;
 using YoutubeSummarizer.Application.Interfaces;

@@ -1,3 +1,5 @@
+﻿using System;
+
 namespace YoutubeSummarizerWeb.Client.Services;
 
 public class AuthStateService

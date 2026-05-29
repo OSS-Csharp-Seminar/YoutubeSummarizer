@@ -1,3 +1,5 @@
+﻿using System;
+using System.Linq;
 using System.Xml.Linq;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Models;

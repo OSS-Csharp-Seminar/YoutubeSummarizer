@@ -1,3 +1,5 @@
+﻿using System.Linq;
+using System.Collections.Generic;
 using YoutubeSummarizer.Application.DTOs;
 using YoutubeSummarizer.Domain.Models;
 

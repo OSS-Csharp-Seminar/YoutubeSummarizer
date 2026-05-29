@@ -1,11 +1,15 @@
+﻿using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 
 namespace YoutubeSummarizer.Api.Controllers
 {
     [ApiController]
-    [Route("api/webhooks/youtube")]
+    [Route(YoutubeWebhookCallbackPath.Value)]
     public class YoutubeWebhooksController : ControllerBase
     {
         private readonly IYoutubeWebhookVerificationService _verificationService;

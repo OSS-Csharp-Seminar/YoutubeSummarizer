@@ -1,3 +1,4 @@
+﻿using System;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -7,7 +8,6 @@ using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
-using YoutubeSummarizer.Application.Features.YoutubeWebhooks;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Interfaces;
@@ -15,6 +15,7 @@ using YoutubeSummarizer.Infrastructure.BackgroundServices;
 using YoutubeSummarizer.Infrastructure.ExternalServices.Ai;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks;
+using YoutubeSummarizer.Infrastructure.Ngrok;
 using YoutubeSummarizer.Infrastructure.Persistence;
 using YoutubeSummarizer.Infrastructure.Persistence.DbContext;
 using YoutubeSummarizer.Infrastructure.Persistence.Repositories;
@@ -69,7 +70,6 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
                 client.Timeout = TimeSpan.FromSeconds(30);
             });
 
-            services.Configure<YoutubeWebhookSettings>(configuration.GetSection("Webhooks:Youtube"));
             services.AddHttpClient<IYoutubeWebSubClient, YoutubeWebSubClient>(client =>
             {
                 client.BaseAddress = new Uri("https://pubsubhubbub.appspot.com/subscribe");
@@ -77,6 +77,9 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddSingleton<IWebhookPayloadQueue, WebhookPayloadQueue>();
             services.AddHostedService<WebhookNotificationProcessor>();
             services.AddHostedService<YoutubeWebhookRenewalBackgroundService>();
+            services.AddSingleton<PublicBaseUrlState>();
+            services.AddSingleton<IPublicBaseUrlProvider>(sp => sp.GetRequiredService<PublicBaseUrlState>());
+            services.AddSingleton<IPublicBaseUrlWriter>(sp => sp.GetRequiredService<PublicBaseUrlState>());
             services.AddHostedService<NgrokTunnelInitializer>();
             services.AddHttpClient<IYoutubeMetadataClient, YoutubeMetadataClient>();
             services.AddHttpClient<IMockWebhookSender, MockWebhookSender>();

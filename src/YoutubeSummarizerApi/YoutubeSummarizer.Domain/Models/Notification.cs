@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using YoutubeSummarizer.Domain.Enums;
 
 namespace YoutubeSummarizer.Domain.Models
