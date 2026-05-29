@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using YoutubeSummarizer.Application.Features.Summarize;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
-using YoutubeSummarizer.Application.Features.YoutubeTranscript;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 using YoutubeSummarizer.Application.Common.Interfaces;
@@ -62,7 +61,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddScoped<IYoutubeWebhookNotificationParser, YoutubeAtomXmlParser>();
             services.AddScoped<IBlacklistEntryRepository, BlacklistEntryRepository>();
 
-            services.Configure<YoutubeTranscriptSettings>(configuration.GetSection("ExternalApis:YoutubeTranscript"));
+            services.Configure<TranscriptApiSettings>(configuration.GetSection("ExternalApis:YoutubeTranscript"));
             services.AddHttpClient<IYoutubeTranscriptClient, YoutubeTranscriptClient>(client =>
             {
                 var baseUrl = configuration["ExternalApis:YoutubeTranscript:BaseUrl"]!.TrimEnd('/') + "/";
@@ -77,9 +76,7 @@ namespace YoutubeSummarizer.Infrastructure.DependencyInjection
             services.AddSingleton<IWebhookPayloadQueue, WebhookPayloadQueue>();
             services.AddHostedService<WebhookNotificationProcessor>();
             services.AddHostedService<YoutubeWebhookRenewalBackgroundService>();
-            services.AddSingleton<PublicBaseUrlState>();
-            services.AddSingleton<IPublicBaseUrlProvider>(sp => sp.GetRequiredService<PublicBaseUrlState>());
-            services.AddSingleton<IPublicBaseUrlWriter>(sp => sp.GetRequiredService<PublicBaseUrlState>());
+            services.AddSingleton<IPublicBaseUrlState, PublicBaseUrlState>();
             services.AddHostedService<NgrokTunnelInitializer>();
             services.AddHttpClient<IYoutubeMetadataClient, YoutubeMetadataClient>();
             services.AddHttpClient<IMockWebhookSender, MockWebhookSender>();

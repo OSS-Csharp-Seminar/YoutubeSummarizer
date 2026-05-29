@@ -12,12 +12,12 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
     public class YoutubeWebSubClient : IYoutubeWebSubClient
     {
         private readonly HttpClient _httpClient;
-        private readonly IPublicBaseUrlProvider _publicBaseUrlProvider;
+        private readonly IPublicBaseUrlState _publicBaseUrlState;
 
-        public YoutubeWebSubClient(HttpClient httpClient, IPublicBaseUrlProvider publicBaseUrlProvider)
+        public YoutubeWebSubClient(HttpClient httpClient, IPublicBaseUrlState publicBaseUrlProvider)
         {
             _httpClient = httpClient;
-            _publicBaseUrlProvider = publicBaseUrlProvider;
+            _publicBaseUrlState = publicBaseUrlProvider;
         }
 
         public async Task SubscribeAsync(string youtubeChannelId, CancellationToken cancellationToken = default)
@@ -52,7 +52,7 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
 
         private string ResolveCallbackUrl()
         {
-            var publicBaseUrl = _publicBaseUrlProvider.PublicBaseUrl
+            var publicBaseUrl = _publicBaseUrlState.PublicBaseUrl
                 ?? throw new InvalidOperationException("Public base URL is not yet configured. Is ngrok running?");
             return $"{publicBaseUrl}/{YoutubeWebhookCallbackPath.Value}";
         }

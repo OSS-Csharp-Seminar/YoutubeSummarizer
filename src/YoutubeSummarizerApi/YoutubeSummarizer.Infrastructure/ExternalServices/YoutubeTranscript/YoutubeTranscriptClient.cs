@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
-using YoutubeSummarizer.Application.Features.YoutubeTranscript;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript.Models;
@@ -18,14 +17,14 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeTranscript
     public class YoutubeTranscriptClient : IYoutubeTranscriptClient
     {
         private readonly HttpClient _httpClient;
-        private readonly YoutubeTranscriptSettings _settings;
+        private readonly TranscriptApiSettings _settings;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNameCaseInsensitive = true
         };
 
-        public YoutubeTranscriptClient(HttpClient httpClient, IOptions<YoutubeTranscriptSettings> settings)
+        public YoutubeTranscriptClient(HttpClient httpClient, IOptions<TranscriptApiSettings> settings)
         {
             _httpClient = httpClient;
             _settings = settings.Value;

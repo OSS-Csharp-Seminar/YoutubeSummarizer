@@ -12,17 +12,17 @@ namespace YoutubeSummarizer.Infrastructure.ExternalServices.YoutubeWebhooks
     public class MockWebhookSender : IMockWebhookSender
     {
         private readonly HttpClient _httpClient;
-        private readonly IPublicBaseUrlProvider _publicBaseUrlProvider;
+        private readonly IPublicBaseUrlState _publicBaseUrlState;
 
-        public MockWebhookSender(HttpClient httpClient, IPublicBaseUrlProvider publicBaseUrlProvider)
+        public MockWebhookSender(HttpClient httpClient, IPublicBaseUrlState publicBaseUrlProvider)
         {
             _httpClient = httpClient;
-            _publicBaseUrlProvider = publicBaseUrlProvider;
+            _publicBaseUrlState = publicBaseUrlProvider;
         }
 
         public async Task<MockWebhookResult> SendAsync(string atomXml, CancellationToken cancellationToken = default)
         {
-            var publicBaseUrl = _publicBaseUrlProvider.PublicBaseUrl;
+            var publicBaseUrl = _publicBaseUrlState.PublicBaseUrl;
             if (string.IsNullOrEmpty(publicBaseUrl))
                 return MockWebhookResult.NotConfigured;
 

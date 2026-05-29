@@ -13,16 +13,16 @@ namespace YoutubeSummarizer.Infrastructure.Ngrok
 {
     public class NgrokTunnelInitializer : BackgroundService
     {
-        private readonly IPublicBaseUrlWriter _publicBaseUrlWriter;
+        private readonly IPublicBaseUrlState _publicBaseUrlState;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<NgrokTunnelInitializer> _logger;
 
         public NgrokTunnelInitializer(
-            IPublicBaseUrlWriter publicBaseUrlWriter,
+            IPublicBaseUrlState publicBaseUrlState,
             IHttpClientFactory httpClientFactory,
             ILogger<NgrokTunnelInitializer> logger)
         {
-            _publicBaseUrlWriter = publicBaseUrlWriter;
+            _publicBaseUrlState = publicBaseUrlState;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
         }
@@ -43,7 +43,7 @@ namespace YoutubeSummarizer.Infrastructure.Ngrok
 
                     if (tunnel is not null)
                     {
-                        _publicBaseUrlWriter.SetPublicBaseUrl(tunnel.PublicUrl);
+                        _publicBaseUrlState.PublicBaseUrl = tunnel.PublicUrl;
                         _logger.LogInformation("Ngrok public base URL set to {PublicBaseUrl}", tunnel.PublicUrl);
                         return;
                     }
