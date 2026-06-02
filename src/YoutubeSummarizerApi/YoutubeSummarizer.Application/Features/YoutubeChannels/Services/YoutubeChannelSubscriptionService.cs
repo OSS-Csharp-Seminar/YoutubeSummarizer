@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
@@ -20,19 +21,22 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
         private readonly ICurrentUserService _currentUserService;
         private readonly IYoutubeWebhookSubscriptionService _webhookSubscriptionService;
         private readonly IYoutubeMetadataClient _metadataClient;
+        private readonly ILogger<YoutubeChannelSubscriptionService> _logger;
 
         public YoutubeChannelSubscriptionService(
             IYoutubeChannelRepository channelRepo,
             IUserYoutubeChannelSubscriptionRepository subscriptionRepo,
             ICurrentUserService currentUserService,
             IYoutubeWebhookSubscriptionService webhookSubscriptionService,
-            IYoutubeMetadataClient metadataClient)
+            IYoutubeMetadataClient metadataClient,
+            ILogger<YoutubeChannelSubscriptionService> logger)
         {
             _channelRepo = channelRepo;
             _subscriptionRepo = subscriptionRepo;
             _currentUserService = currentUserService;
             _webhookSubscriptionService = webhookSubscriptionService;
             _metadataClient = metadataClient;
+            _logger = logger;
         }
 
         public async Task<ServiceResponse<SubscribeToYoutubeChannelResponse>> SubscribeAsync(
@@ -43,7 +47,9 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
             {
                 var userId = _currentUserService.GetCurrentUserId();
 
-                var metadata = await _metadataClient.GetChannelMetadataAsync(request.ChannelUrl, cancellationToken);
+                var normalizedUrl = NormalizeChannelUrl(request.ChannelUrl);
+
+                var metadata = await _metadataClient.GetChannelMetadataAsync(normalizedUrl, cancellationToken);
 
                 var channel = await _channelRepo.GetByYoutubeChannelIdAsync(metadata.ChannelId, cancellationToken);
                 if (channel is null)
@@ -52,13 +58,22 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                     {
                         YoutubeChannelId = metadata.ChannelId,
                         ChannelName = metadata.ChannelName,
-                        ChannelUrl = request.ChannelUrl,
+                        ChannelUrl = normalizedUrl,
                         CreatedAtUtc = DateTime.UtcNow
                     };
                     await _channelRepo.AddAsync(channel, cancellationToken);
+                }
 
-                    if (!channel.IsWebhookSubscribed)
+                if (!channel.IsWebhookSubscribed)
+                {
+                    try
+                    {
                         await _webhookSubscriptionService.SubscribeAsync(channel.Id, cancellationToken);
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        _logger.LogWarning(ex, "Webhook subscription deferred for channel {ChannelId}. Will be retried in the background.", channel.Id);
+                    }
                 }
 
                 var exists = await _subscriptionRepo.ExistsAsync(userId, channel.Id, cancellationToken);
@@ -140,7 +155,16 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
                     if (channel is not null)
                     {
                         if (channel.IsWebhookSubscribed)
-                            await _webhookSubscriptionService.UnsubscribeAsync(channelId, cancellationToken);
+                        {
+                            try
+                            {
+                                await _webhookSubscriptionService.UnsubscribeAsync(channelId, cancellationToken);
+                            }
+                            catch (Exception ex) when (ex is not OperationCanceledException)
+                            {
+                                _logger.LogWarning(ex, "Failed to unsubscribe webhook for channel {ChannelId}. It will expire at the hub.", channelId);
+                            }
+                        }
                         await _channelRepo.DeleteAsync(channel, cancellationToken);
                     }
                 }
@@ -151,6 +175,18 @@ namespace YoutubeSummarizer.Application.Features.YoutubeChannels.Services
             {
                 return ServiceResponse<bool>.Failure("An error occurred.");
             }
+        }
+
+        private static string NormalizeChannelUrl(string url)
+        {
+            url = url.Trim();
+            if (!url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) &&
+                !url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                url = "https://" + url;
+
+            var uri = new Uri(url);
+            var host = uri.Host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? uri.Host : "www." + uri.Host;
+            return $"https://{host}{uri.PathAndQuery}";
         }
 
         public async Task<ServiceResponse<bool>> UpdateSummarizationStyleAsync(

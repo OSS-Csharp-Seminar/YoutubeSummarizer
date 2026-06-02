@@ -162,7 +162,16 @@ namespace YoutubeSummarizer.Application.Features.Admin.Services
                     if (channel is not null)
                     {
                         if (channel.IsWebhookSubscribed)
-                            await _webhookService.UnsubscribeAsync(channelId, cancellationToken);
+                        {
+                            try
+                            {
+                                await _webhookService.UnsubscribeAsync(channelId, cancellationToken);
+                            }
+                            catch (Exception ex) when (ex is not OperationCanceledException)
+                            {
+                                _logger.LogWarning(ex, "Failed to unsubscribe webhook for channel {ChannelId}. It will expire at the hub.", channelId);
+                            }
+                        }
                         await _channelRepo.DeleteAsync(channel, cancellationToken);
                     }
                 }

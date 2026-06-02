@@ -31,7 +31,7 @@ namespace YoutubeSummarizer.Infrastructure.BackgroundServices
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var svc = scope.ServiceProvider.GetRequiredService<IYoutubeWebhookSubscriptionService>();
-                    await svc.RenewExpiringSubscriptionsAsync(stoppingToken);
+                    await svc.RefreshAllSubscriptionsAsync(stoppingToken);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {

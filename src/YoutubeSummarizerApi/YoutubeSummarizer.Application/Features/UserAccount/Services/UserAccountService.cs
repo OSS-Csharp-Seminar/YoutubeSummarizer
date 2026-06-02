@@ -1,7 +1,9 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using YoutubeSummarizer.Application.Common.Interfaces;
 using YoutubeSummarizer.Application.Common.Models;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
@@ -27,6 +29,7 @@ namespace YoutubeSummarizer.Application.Features.UserAccount.Services
         private readonly IUserYoutubeChannelSubscriptionRepository _subRepo;
         private readonly IYoutubeChannelRepository _channelRepo;
         private readonly IYoutubeWebhookSubscriptionService _webhookService;
+        private readonly ILogger<UserAccountService> _logger;
 
         public UserAccountService(
             IBlacklistEntryRepository blacklistRepo,
@@ -37,7 +40,8 @@ namespace YoutubeSummarizer.Application.Features.UserAccount.Services
             INotificationRepository notificationRepo,
             IUserYoutubeChannelSubscriptionRepository subRepo,
             IYoutubeChannelRepository channelRepo,
-            IYoutubeWebhookSubscriptionService webhookService)
+            IYoutubeWebhookSubscriptionService webhookService,
+            ILogger<UserAccountService> logger)
         {
             _blacklistRepo = blacklistRepo;
             _currentUserService = currentUserService;
@@ -48,6 +52,7 @@ namespace YoutubeSummarizer.Application.Features.UserAccount.Services
             _subRepo = subRepo;
             _channelRepo = channelRepo;
             _webhookService = webhookService;
+            _logger = logger;
         }
 
         public async Task<ServiceResponse<List<BlacklistEntryDto>>> GetBlacklistEntriesAsync(CancellationToken cancellationToken = default)
@@ -124,7 +129,16 @@ namespace YoutubeSummarizer.Application.Features.UserAccount.Services
                     if (channel is not null)
                     {
                         if (channel.IsWebhookSubscribed)
-                            await _webhookService.UnsubscribeAsync(channelId, cancellationToken);
+                        {
+                            try
+                            {
+                                await _webhookService.UnsubscribeAsync(channelId, cancellationToken);
+                            }
+                            catch (Exception ex) when (ex is not OperationCanceledException)
+                            {
+                                _logger.LogWarning(ex, "Failed to unsubscribe webhook for channel {ChannelId}. It will expire at the hub.", channelId);
+                            }
+                        }
                         await _channelRepo.DeleteAsync(channel, cancellationToken);
                     }
                 }

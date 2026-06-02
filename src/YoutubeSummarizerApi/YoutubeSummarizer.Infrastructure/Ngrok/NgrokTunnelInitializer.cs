@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
@@ -6,8 +6,10 @@ using System.Net.Http.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
 
 namespace YoutubeSummarizer.Infrastructure.Ngrok
 {
@@ -15,48 +17,79 @@ namespace YoutubeSummarizer.Infrastructure.Ngrok
     {
         private readonly IPublicBaseUrlState _publicBaseUrlState;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<NgrokTunnelInitializer> _logger;
 
         public NgrokTunnelInitializer(
             IPublicBaseUrlState publicBaseUrlState,
             IHttpClientFactory httpClientFactory,
+            IServiceProvider serviceProvider,
             ILogger<NgrokTunnelInitializer> logger)
         {
             _publicBaseUrlState = publicBaseUrlState;
             _httpClientFactory = httpClientFactory;
+            _serviceProvider = serviceProvider;
             _logger = logger;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             using var httpClient = _httpClientFactory.CreateClient();
+            string? lastKnownUrl = null;
 
-            for (var i = 0; i < 15; i++)
+            while (!stoppingToken.IsCancellationRequested)
             {
-                try
+                var currentUrl = await PollNgrokTunnelAsync(httpClient, stoppingToken);
+
+                if (currentUrl != lastKnownUrl)
                 {
-                    var response = await httpClient.GetFromJsonAsync<NgrokApiResponse>(
-                        "http://localhost:4040/api/tunnels", stoppingToken);
+                    _publicBaseUrlState.PublicBaseUrl = currentUrl;
 
-                    var tunnel = response?.Tunnels.FirstOrDefault(t =>
-                        t.PublicUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
-
-                    if (tunnel is not null)
+                    if (currentUrl is not null)
                     {
-                        _publicBaseUrlState.PublicBaseUrl = tunnel.PublicUrl;
-                        _logger.LogInformation("Ngrok public base URL set to {PublicBaseUrl}", tunnel.PublicUrl);
-                        return;
+                        _logger.LogInformation("Ngrok public base URL set to {PublicBaseUrl}", currentUrl);
+                        await RefreshWebhookSubscriptionsAsync(stoppingToken);
                     }
-                }
-                catch
-                {
+                    else
+                    {
+                        _logger.LogWarning("Ngrok tunnel is no longer available. Webhook callbacks will be unavailable until it comes back.");
+                    }
+
+                    lastKnownUrl = currentUrl;
                 }
 
-                _logger.LogInformation("Waiting for ngrok tunnel... (attempt {Attempt}/15)", i + 1);
-                await Task.Delay(2000, stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
+        }
 
-            _logger.LogWarning("Could not resolve ngrok tunnel URL. Webhook callbacks will be unavailable until configured.");
+        private async Task<string?> PollNgrokTunnelAsync(HttpClient httpClient, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var response = await httpClient.GetFromJsonAsync<NgrokApiResponse>(
+                    "http://localhost:4040/api/tunnels", cancellationToken);
+
+                return response?.Tunnels.FirstOrDefault(t =>
+                    t.PublicUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))?.PublicUrl;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private async Task RefreshWebhookSubscriptionsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var svc = scope.ServiceProvider.GetRequiredService<IYoutubeWebhookSubscriptionService>();
+                await svc.RefreshAllSubscriptionsAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogError(ex, "Failed to refresh webhook subscriptions after ngrok URL change.");
+            }
         }
 
         private class NgrokApiResponse

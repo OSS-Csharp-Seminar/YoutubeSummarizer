@@ -28,10 +28,8 @@ namespace YoutubeSummarizer.Infrastructure.Persistence.Repositories
         public Task<YoutubeChannel?> GetByYoutubeChannelIdAsync(string youtubeChannelId, CancellationToken cancellationToken = default)
             => _db.YoutubeChannels.FirstOrDefaultAsync(x => x.YoutubeChannelId == youtubeChannelId, cancellationToken);
 
-        public Task<List<YoutubeChannel>> GetExpiringWebhookSubscriptionsAsync(DateTime thresholdUtc, CancellationToken cancellationToken = default)
-            => _db.YoutubeChannels
-                .Where(x => x.IsWebhookSubscribed && x.WebhookExpiresAtUtc <= thresholdUtc)
-                .ToListAsync(cancellationToken);
+        public Task<List<YoutubeChannel>> GetAllAsync(CancellationToken cancellationToken = default)
+            => _db.YoutubeChannels.ToListAsync(cancellationToken);
 
         public async Task AddAsync(YoutubeChannel channel, CancellationToken cancellationToken = default)
         {
