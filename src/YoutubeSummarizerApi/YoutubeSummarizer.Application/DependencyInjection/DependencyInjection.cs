@@ -1,12 +1,8 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using YoutubeSummarizer.Application.Features.AI.PromptTemplates;
-using YoutubeSummarizer.Application.Features.Summarize.Interfaces;
-using YoutubeSummarizer.Application.Features.Summarize.Services;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeChannels.Services;
-using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
-using YoutubeSummarizer.Application.Features.YoutubeTranscript.Services;
 using YoutubeSummarizer.Application.Features.Admin.Interfaces;
 using YoutubeSummarizer.Application.Features.Admin.Services;
 using YoutubeSummarizer.Application.Features.Notifications.Interfaces;
@@ -28,8 +24,6 @@ namespace YoutubeSummarizer.Application.DependencyInjection
         {
             services.AddScoped<UserMapper>();
             services.AddScoped<IAuthService, AuthService>();
-            services.AddScoped<IYoutubeTranscriptService, YoutubeTranscriptService>();
-            services.AddScoped<ISummarizeService, SummarizeService>();
             services.AddScoped<ITranscriptPromptTemplateProvider, TranscriptPromptTemplateProvider>();
             services.AddScoped<IYoutubeChannelSubscriptionService, YoutubeChannelSubscriptionService>();
             services.AddScoped<IYoutubeWebhookSubscriptionService, YoutubeWebhookSubscriptionService>();

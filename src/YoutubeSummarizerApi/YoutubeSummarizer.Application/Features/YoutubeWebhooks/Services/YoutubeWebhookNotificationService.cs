@@ -13,7 +13,9 @@ using YoutubeSummarizer.Application.Features.YoutubeChannels.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Dtos;
 using YoutubeSummarizer.Application.Features.YoutubeTranscript.Interfaces;
 using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Interfaces;
+using YoutubeSummarizer.Application.Features.YoutubeWebhooks.Models;
 using YoutubeSummarizer.Domain.Enums;
+using YoutubeSummarizer.Domain.Models;
 
 namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
 {
@@ -59,18 +61,8 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             _logger.LogInformation("Webhook received. Raw payload:\n{Payload}", payload);
 
             var notification = _notificationParser.Parse(payload);
-
             var videoUrl = $"https://www.youtube.com/watch?v={notification.VideoId}";
-            var videoTitle = notification.VideoTitle;
-            try
-            {
-                var metadata = await _metadataClient.GetVideoMetadataAsync(videoUrl, cancellationToken);
-                videoTitle = metadata.Title;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to resolve fresh video title for {VideoId}, using XML title.", notification.VideoId);
-            }
+            var videoTitle = await ResolveVideoTitleAsync(notification, videoUrl, cancellationToken);
 
             _logger.LogInformation(
                 "Parsed webhook: \"{VideoTitle}\" by {ChannelName} | Video: {VideoId} | Channel: {ChannelId}",
@@ -90,63 +82,17 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                 return;
             }
 
-            string? transcriptText = null;
-
-            var transcriptRequest = new GetYoutubeTranscriptRequest { VideoUrl = videoUrl };
-            const int maxRetries = 3;
-
-            for (var attempt = 1; attempt <= maxRetries; attempt++)
-            {
-                try
-                {
-                    var transcriptResponse = await _transcriptClient.GetTranscriptAsync(transcriptRequest, cancellationToken);
-
-                    if (transcriptResponse.Transcript.Count > 0)
-                        transcriptText = string.Join(" ", transcriptResponse.Transcript.Select(s => s.Text));
-
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Transcript fetch attempt {Attempt}/{MaxRetries} failed for video {VideoId}.",
-                        attempt, maxRetries, notification.VideoId);
-
-                    if (attempt < maxRetries)
-                        await Task.Delay(2000 * attempt);
-                }
-            }
+            var transcriptText = await FetchTranscriptWithRetriesAsync(notification.VideoId, videoUrl, cancellationToken);
 
             if (string.IsNullOrWhiteSpace(transcriptText))
             {
                 _logger.LogInformation("No transcript available for {VideoId}. Sending fallback notifications.", notification.VideoId);
-
                 var allUserIds = subscriptions.Select(s => s.UserId).Distinct().ToList();
-                await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
-                {
-                    Type = NotificationType.NewVideo,
-                    Title = videoTitle,
-                    Content = "A summary of this video is not available.",
-                    SenderName = notification.ChannelName
-                }, allUserIds, cancellationToken);
-
+                await SendNotificationsAsync(videoTitle, notification.ChannelName, "A summary of this video is not available.", allUserIds, null, cancellationToken);
                 return;
             }
 
-            var subscriberUserIds = subscriptions.Select(s => s.UserId).Distinct().ToList();
-            var allBlacklistEntries = await _blacklistRepo.GetByUserIdsAsync(subscriberUserIds, cancellationToken);
-            var subscriberBlacklists = allBlacklistEntries
-                .GroupBy(e => e.UserId)
-                .ToDictionary(g => g.Key, g => g.Select(e => e.Keyword).ToList());
-
-            var transcriptLower = transcriptText.ToLowerInvariant();
-            var filteredSubscriptions = subscriptions
-                .Where(s =>
-                {
-                    if (!subscriberBlacklists.TryGetValue(s.UserId, out var keywords) || keywords.Count == 0)
-                        return true;
-                    return !keywords.Any(k => transcriptLower.Contains(k.ToLowerInvariant()));
-                })
-                .ToList();
+            var filteredSubscriptions = await ApplyBlacklistFilterAsync(subscriptions, transcriptText, cancellationToken);
 
             if (filteredSubscriptions.Count == 0)
             {
@@ -162,6 +108,91 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                 "Summarizing video {VideoId} in {StyleCount} style(s) for {SubscriberCount} subscriber(s).",
                 notification.VideoId, styleGroups.Count, filteredSubscriptions.Select(s => s.UserId).Distinct().Count());
 
+            var completed = await GenerateSummariesAsync(styleGroups, transcriptText, cancellationToken);
+
+            foreach (var (style, userIds, summary) in completed)
+            {
+                await SendNotificationsAsync(videoTitle, notification.ChannelName, summary, userIds, style, cancellationToken);
+            }
+        }
+
+        private async Task<string> ResolveVideoTitleAsync(
+            YoutubeWebhookNotification notification,
+            string videoUrl,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var metadata = await _metadataClient.GetVideoMetadataAsync(videoUrl, cancellationToken);
+                return metadata.Title;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to resolve fresh video title for {VideoId}, using XML title.", notification.VideoId);
+                return notification.VideoTitle;
+            }
+        }
+
+        private async Task<string?> FetchTranscriptWithRetriesAsync(
+            string videoId,
+            string videoUrl,
+            CancellationToken cancellationToken)
+        {
+            var transcriptRequest = new GetYoutubeTranscriptRequest { VideoUrl = videoUrl };
+            const int maxRetries = 3;
+
+            for (var attempt = 1; attempt <= maxRetries; attempt++)
+            {
+                try
+                {
+                    var transcriptResponse = await _transcriptClient.GetTranscriptAsync(transcriptRequest, cancellationToken);
+
+                    if (transcriptResponse.Transcript.Count > 0)
+                        return string.Join(" ", transcriptResponse.Transcript.Select(s => s.Text));
+
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Transcript fetch attempt {Attempt}/{MaxRetries} failed for video {VideoId}.",
+                        attempt, maxRetries, videoId);
+
+                    if (attempt < maxRetries)
+                        await Task.Delay(2000 * attempt, cancellationToken);
+                }
+            }
+
+            return null;
+        }
+
+        private async Task<List<UserYoutubeChannelSubscription>> ApplyBlacklistFilterAsync(
+            List<UserYoutubeChannelSubscription> subscriptions,
+            string transcriptText,
+            CancellationToken cancellationToken)
+        {
+            var subscriberUserIds = subscriptions.Select(s => s.UserId).Distinct().ToList();
+            var allBlacklistEntries = await _blacklistRepo.GetByUserIdsAsync(subscriberUserIds, cancellationToken);
+            var subscriberBlacklists = allBlacklistEntries
+                .GroupBy(e => e.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(e => e.Keyword).ToList());
+
+            var transcriptLower = transcriptText.ToLowerInvariant();
+
+            return subscriptions
+                .Where(s =>
+                {
+                    if (!subscriberBlacklists.TryGetValue(s.UserId, out var keywords) || keywords.Count == 0)
+                        return true;
+                    return !keywords.Any(k => transcriptLower.Contains(k.ToLowerInvariant()));
+                })
+                .ToList();
+        }
+
+        private async Task<List<(TranscriptSummarizationStyle Style, List<Guid> UserIds, string Summary)>> GenerateSummariesAsync(
+            Dictionary<TranscriptSummarizationStyle, List<Guid>> styleGroups,
+            string transcriptText,
+            CancellationToken cancellationToken)
+        {
             var styleList = styleGroups.ToList();
             var completed = new List<(TranscriptSummarizationStyle Style, List<Guid> UserIds, string Summary)>();
             var fallbackIndex = -1;
@@ -188,11 +219,9 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
             if (fallbackIndex >= 0)
             {
                 var remaining = styleList.Skip(fallbackIndex).ToList();
-                var fallbackPrompts = remaining.Select(kvp =>
-                {
-                    var promptTemplate = _promptTemplateProvider.GetTemplate(kvp.Key);
-                    return $"{promptTemplate}\n\nTranscript:\n{transcriptText}";
-                }).ToList();
+                var fallbackPrompts = remaining
+                    .Select(kvp => $"{_promptTemplateProvider.GetTemplate(kvp.Key)}\n\nTranscript:\n{transcriptText}")
+                    .ToList();
 
                 var fallbackTasks = fallbackPrompts
                     .Select(p => _aiClient.CompleteFallbackAsync(p, cancellationToken))
@@ -217,20 +246,29 @@ namespace YoutubeSummarizer.Application.Features.YoutubeWebhooks.Services
                 }
             }
 
-            foreach (var (style, userIds, summary) in completed)
-            {
-                await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
-                {
-                    Type = NotificationType.NewVideo,
-                    Title = videoTitle,
-                    Content = summary,
-                    SenderName = notification.ChannelName
-                }, userIds, cancellationToken);
+            return completed;
+        }
 
+        private async Task SendNotificationsAsync(
+            string videoTitle,
+            string channelName,
+            string content,
+            List<Guid> userIds,
+            TranscriptSummarizationStyle? style,
+            CancellationToken cancellationToken)
+        {
+            await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
+            {
+                Type = NotificationType.NewVideo,
+                Title = videoTitle,
+                Content = content,
+                SenderName = channelName
+            }, userIds, cancellationToken);
+
+            if (style.HasValue)
                 _logger.LogInformation(
                     "Sent {Style} summary notification for \"{VideoTitle}\" to {UserCount} user(s).",
-                    style, videoTitle, userIds.Count);
-            }
+                    style.Value, videoTitle, userIds.Count);
         }
     }
 }
